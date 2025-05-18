@@ -5,6 +5,7 @@ import pandas as pd
 # sitemap URL and direct output path
 sitemap_url = "https://www.redfin.com/sitemap_com_city_VA.xml.gz"
 output_file = r"C:\Users\willm\Desktop\housing_project\unique_city_ids.csv"
+
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 # fetch XML content directly
