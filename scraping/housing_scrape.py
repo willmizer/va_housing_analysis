@@ -1,15 +1,17 @@
 import pandas as pd
-import time
 import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# file paths
+# input/output paths
 city_ids_file = r"C:\Users\willm\Desktop\housing_project\unique_city_ids.csv"
 output_file = r"C:\Users\willm\Desktop\housing_project\all_scraped_listings.csv"
 
-# setup selenium headless
+# setup selenium
 options = Options()
 options.add_argument("--headless=new")
 options.add_argument("--disable-gpu")
@@ -23,7 +25,7 @@ driver = webdriver.Chrome(options=options)
 # load city ids
 df_ids = pd.read_csv(city_ids_file).drop_duplicates(subset=["city_id", "city_name"])
 
-# load existing output if it exists
+# load previous output
 try:
     df_existing = pd.read_csv(output_file)
     scraped_ids = set(df_existing["city_id"].astype(str))
@@ -33,15 +35,13 @@ except FileNotFoundError:
 
 all_data = []
 
-def parse_listings(html):
-    soup = BeautifulSoup(html, "html.parser")
+def parse_listings(cards, city_id, city_name):
     listings = []
-    cards = soup.select("a[data-rf-test-name='basicNode-homeCard']")
 
     for card in cards:
         try:
-            address = card.get("title", "").strip()
-            summary = card.get("aria-label", "").lower()
+            address = card.get_attribute("title").strip()
+            summary = card.get_attribute("aria-label").lower()
             beds = baths = "N/A"
             for part in summary.split(","):
                 if "bed" in part:
@@ -49,17 +49,21 @@ def parse_listings(html):
                 if "bath" in part:
                     baths = part.strip().replace("baths", "").replace("bath", "").strip()
 
-            price_tag = card.select_one("span.bp-Homecard__Price--value")
-            price = price_tag.text.strip() if price_tag else "N/A"
+            try:
+                price = card.find_element(By.CSS_SELECTOR, "span.bp-Homecard__Price--value").text.strip()
+            except:
+                price = "N/A"
 
-            sqft_tag = card.select_one("span.bp-Homecard__LockedStat--value")
-            sqft = sqft_tag.text.strip() if sqft_tag else "-"
+            try:
+                sqft = card.find_element(By.CSS_SELECTOR, "span.bp-Homecard__LockedStat--value").text.strip()
+            except:
+                sqft = "-"
 
-            keyfacts = card.select("span.KeyFacts-item")
             acres = hoa = garages = "N/A"
             pool = False
+            keyfacts = card.find_elements(By.CSS_SELECTOR, "span.KeyFacts-item")
             for fact in keyfacts:
-                text = fact.get_text(strip=True).lower()
+                text = fact.text.lower().strip()
                 if "acre" in text:
                     acres = text
                 elif "hoa" in text:
@@ -73,6 +77,9 @@ def parse_listings(html):
 
             land = beds == "N/A" and baths == "N/A"
 
+            href = card.get_attribute("href")
+            listing_url = f"https://www.redfin.com{href}" if href else "N/A"
+
             listings.append({
                 "address": address,
                 "price": price,
@@ -83,13 +90,16 @@ def parse_listings(html):
                 "hoa": hoa,
                 "garages": garages,
                 "pool": pool,
-                "land": land
+                "land": land,
+                "city_id": city_id,
+                "city_name": city_name,
+                "url": listing_url
             })
         except Exception as e:
             print(f"  error parsing listing: {e}")
     return listings
 
-# loop through each city
+# loop through all cities
 for _, row in df_ids.iterrows():
     city_id = str(row["city_id"]).strip()
     city_name = str(row["city_name"]).strip().replace(" ", "-")
@@ -107,38 +117,36 @@ for _, row in df_ids.iterrows():
         print(f"  visiting: {url}")
         try:
             driver.get(url)
-            time.sleep(2)
-            html = driver.page_source
-            soup = BeautifulSoup(html, "html.parser")
-            cards = soup.select("a[data-rf-test-name='basicNode-homeCard']")
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "a[data-rf-test-name='basicNode-homeCard']"))
+            )
+            cards = driver.find_elements(By.CSS_SELECTOR, "a[data-rf-test-name='basicNode-homeCard']")
             if not cards:
                 print("  no listings found, stopping pagination")
                 break
 
-            sig = cards[0].get("title")
+            sig = cards[0].get_attribute("title")
             if first_sig is None:
                 first_sig = sig
             elif sig == first_sig:
                 print("  repeated first listing — stopping")
                 break
 
-            listings = parse_listings(html)
-            for listing in listings:
-                listing["city_id"] = city_id
-                listing["city_name"] = row["city_name"]
+            listings = parse_listings(cards, city_id, row["city_name"])
             all_data.extend(listings)
 
         except Exception as e:
             print(f"  failed to load page: {e}")
             break
 
-# finalize
 driver.quit()
 
-# merge and save
+# save results
 df_new = pd.DataFrame(all_data)
 df_final = pd.concat([df_existing, df_new], ignore_index=True)
 df_final.to_csv(output_file, index=False)
 
-print(f"\nfinished scraping. total listings saved: {len(df_final)}")
+print(f"\nfinished scraping {len(df_ids)} cities")
+print(f"total listings scraped this run: {len(df_new)}")
+print(f"total listings saved: {len(df_final)}")
 print(f"output saved to: {output_file}")
