@@ -1,3 +1,4 @@
+-- cleaning / standardization of housing data (using scraped data)
 SELECT * FROM housing_data;
 
 -- Create table for importing data
