@@ -3,22 +3,22 @@ SELECT * FROM housing_data;
 -- Create table for importing data
 CREATE TABLE housing_data (
     address VARCHAR(255),
-    price VARCHAR(50),
-    bed VARCHAR(500),
-    bath VARCHAR(25),
-    sq_ft VARCHAR(20),
-    acres VARCHAR(50),
-    hoa VARCHAR(50),
-    garages VARCHAR(10),
-    pool VARCHAR(5),       
-    land VARCHAR(5),       
-    city_id VARCHAR(10),
-    city_name VARCHAR(100),
-    url TEXT
+    city VARCHAR(100),
+    beds VARCHAR(20),
+    baths VARCHAR(20),
+    price VARCHAR(20),
+    status VARCHAR(50),
+    square_feet VARCHAR(20),
+    acres VARCHAR(20),
+    year_built VARCHAR(10),
+    days_on_market VARCHAR(20),
+    property_type VARCHAR(100),
+    hoa_per_month VARCHAR(50),
+    url VARCHAR(1000)
 );
 
 -- import data from uploads for an efficient import
-LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/all_scraped_listings.csv'
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/all_corrected_listings.csv'
 INTO TABLE housing_data
 CHARACTER SET utf8mb4
 FIELDS TERMINATED BY ','
@@ -26,75 +26,38 @@ ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
--- URLs have repeating items that need to be removed - used REPLACE statement and verified with LIKE
+-- delete all rows with non-existent addresses
+DELETE FROM housing_data
+WHERE address = "N/A";
+
+-- standardize property types for easier analysis
+SELECT DISTINCT property_type FROM housing_data;
+
+-- parking isnt a housing option so remove unessisary rows 
+DELETE FROM housing_data
+WHERE property_type = "Parking";
+
+-- standardize property types
 UPDATE housing_data
-SET url = REPLACE(url, 'https://www.redfin.comhttps://www.redfin.com', 'https://www.redfin.com')
-WHERE url LIKE 'https://www.redfin.comhttps://www.redfin.com%';
+SET property_type = REPLACE(property_type, "Single Family Residential", "Single Family");
 
--- beds have weird values that need to be addressed
-SELECT DISTINCT bed FROM housing_data;
+UPDATE housing_data
+SET property_type = REPLACE(property_type, "Vacant Land", "Land");
 
--- addressing weird bed values 
-SELECT * FROM housing_data
-WHERE bed IN (
-    'property at 6631 doo st',
-    '44',
-    'ford',
-    'property at tbd aul rd unit n/a',
-    'property at 1700 ford ave'
-);
+UPDATE housing_data
+SET property_type = REPLACE(property_type, "Multi-Family (2-4 Unit)", "Multi-Familty");
+
+UPDATE housing_data
+SET property_type = REPLACE(property_type, "Condo/Co-op", "Condo");
+
+UPDATE housing_data
+SET property_type = REPLACE(property_type, "Multi-Family (5+ Unit)", "Large Multi-Familty");
+--
+
+-- remove unwanted values from status
+SELECT DISTINCT status
+FROM housing_data;
 
 DELETE FROM housing_data
-WHERE bed IN (
-    'property at 6631 doo st',
-    '44',
-    'ford',
-    'property at tbd aul rd unit n/a',
-    'property at 1700 ford ave'
-);
+WHERE status = "Off Market";
 
--- when scraping the website used — as a placeholder when acres were not mentioned in the listing so i replaced all values of — with N/A 
-UPDATE housing_data
-set sq_ft = REPLACE(sq_ft,"—", "N/A")
-WHERE sq_ft LIKE "—";
-
--- Unknown is in place of price for some properties, I set it to null for eventual column change to int
-UPDATE housing_data
-set price = REPLACE(price,"Unknown", NULL)
-WHERE price LIKE "Unknown";
-
--- after adjusting the "—" values I changed all N/A values to null for standardization
-UPDATE housing_data SET bed = NULL WHERE bed = 'N/A';
-UPDATE housing_data SET bath = NULL WHERE bath = 'N/A';
-UPDATE housing_data SET sq_ft = NULL WHERE sq_ft = 'N/A';
-UPDATE housing_data SET acres = NULL WHERE acres = 'N/A';
-UPDATE housing_data SET hoa = NULL WHERE hoa = 'N/A';
-UPDATE housing_data SET garages = NULL WHERE garages = 'N/A';
-UPDATE housing_data SET url = NULL WHERE url = 'N/A';
-
--- standardizing price column so it is easier to work with as a int value
-UPDATE housing_data
-SET price = REPLACE(REPLACE(price, '$', ''), ',', '');
-
--- change price to int value
-ALTER TABLE housing_data MODIFY price INT;
-
--- drop city_id column, only used to help collect scraped data
-ALTER TABLE housing_data
-DROP city_id;
-
--- identify different values in acres
-SELECT DISTINCT acres FROM housing_data
-WHERE acres IS NOT NULL;
-
--- standardize acres column - (0.29 acre lot) --> (0.29)
-UPDATE housing_data
-SET acres = REPLACE(acres,' acre lot','');
-
--- change acres to double
-ALTER TABLE housing_data MODIFY acres DOUBLE;
-
--- convert pool and land to boolean (messed up on cleaning)
-UPDATE housing_data
-SET pool = IF(pool = 'True', 1, 0),
-    land = IF(land = 'True', 1, 0);
