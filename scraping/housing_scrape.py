@@ -1,152 +1,107 @@
+import requests
+import csv
 import pandas as pd
-import re
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from io import StringIO
 
-# input/output paths
-city_ids_file = r"C:\Users\willm\Desktop\housing_project\unique_city_ids.csv"
-output_file = r"C:\Users\willm\Desktop\housing_project\all_scraped_listings.csv"
+# load the list of cities 
+cities_df = pd.read_csv(r"C:\Users\willm\Desktop\housing_project\scraping\unique_city_ids.csv")
+cities_df = cities_df[["city_name", "city_id"]].dropna().drop_duplicates()
 
-# setup selenium
-options = Options()
-options.add_argument("--headless=new")
-options.add_argument("--disable-gpu")
-options.add_argument("--disable-software-rasterizer")
-options.add_argument("--disable-webgl")
-options.add_argument("--no-sandbox")
-options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-options.page_load_strategy = 'eager'
-driver = webdriver.Chrome(options=options)
+# output file path 
+output_file = r"C:\Users\willm\Desktop\housing_project\all_redfin_listings.csv"
 
-# load city ids
-df_ids = pd.read_csv(city_ids_file).drop_duplicates(subset=["city_id", "city_name"])
+# column headers to write into the CSV
+fieldnames = [
+    "address", "city", "beds", "baths", "price", "status",
+    "square_feet", "acres", "year_built", "days_on_market",
+    "property_type", "hoa_per_month", "url"
+]
 
-# load previous output
-try:
-    df_existing = pd.read_csv(output_file)
-    scraped_ids = set(df_existing["city_id"].astype(str))
-except FileNotFoundError:
-    df_existing = pd.DataFrame()
-    scraped_ids = set()
+# create the CSV file and write the header row
+with open(output_file, "w", newline="", encoding="utf-8") as file:
+    writer = csv.DictWriter(file, fieldnames=fieldnames)
+    writer.writeheader()
 
-all_data = []
+# loop through each city in the CSV
+for _, row in cities_df.iterrows():
+    city_name = row["city_name"]
+    region_id = int(row["city_id"])
+    region_type = 6  # redfin code for city
+    market = "va"
+    max_per_page = 100  # max results per page
+    start = 0  
 
-def parse_listings(cards, city_id, city_name):
-    listings = []
+    print(f"Scraping {city_name}...")
 
-    for card in cards:
+    # paginate through all pages 
+    while True:
+        # api request
+        url = (
+            f"https://www.redfin.com/stingray/api/gis-csv?"
+            f"al=1&market={market}&num_homes={max_per_page}&region_id={region_id}"
+            f"&region_type={region_type}&status=9&uipt=1,2,3,4,5,6&v=8&start={start}"
+        )
+
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "text/csv",
+        }
+
         try:
-            address = card.get_attribute("title").strip()
-            summary = card.get_attribute("aria-label").lower()
-            beds = baths = "N/A"
-            for part in summary.split(","):
-                if "bed" in part:
-                    beds = part.strip().replace("beds", "").replace("bed", "").strip()
-                if "bath" in part:
-                    baths = part.strip().replace("baths", "").replace("bath", "").strip()
-
-            try:
-                price = card.find_element(By.CSS_SELECTOR, "span.bp-Homecard__Price--value").text.strip()
-            except:
-                price = "N/A"
-
-            try:
-                sqft = card.find_element(By.CSS_SELECTOR, "span.bp-Homecard__LockedStat--value").text.strip()
-            except:
-                sqft = "-"
-
-            acres = hoa = garages = "N/A"
-            pool = False
-            keyfacts = card.find_elements(By.CSS_SELECTOR, "span.KeyFacts-item")
-            for fact in keyfacts:
-                text = fact.text.lower().strip()
-                if "acre" in text:
-                    acres = text
-                elif "hoa" in text:
-                    hoa = text
-                elif "garage" in text:
-                    match = re.search(r"\d+", text)
-                    if match:
-                        garages = match.group()
-                elif "pool" in text:
-                    pool = True
-
-            land = beds == "N/A" and baths == "N/A"
-
-            href = card.get_attribute("href")
-            listing_url = f"https://www.redfin.com{href}" if href else "N/A"
-
-            listings.append({
-                "address": address,
-                "price": price,
-                "bed": beds,
-                "bath": baths,
-                "sq_ft": sqft,
-                "acres": acres,
-                "hoa": hoa,
-                "garages": garages,
-                "pool": pool,
-                "land": land,
-                "city_id": city_id,
-                "city_name": city_name,
-                "url": listing_url
-            })
-        except Exception as e:
-            print(f"  error parsing listing: {e}")
-    return listings
-
-# loop through all cities
-for _, row in df_ids.iterrows():
-    city_id = str(row["city_id"]).strip()
-    city_name = str(row["city_name"]).strip().replace(" ", "-")
-
-    if city_id in scraped_ids:
-        print(f"skipping already scraped city_id: {city_id}")
-        continue
-
-    base_url = f"https://www.redfin.com/city/{city_id}/VA/{city_name}"
-    print(f"\nscraping: {base_url}")
-    first_sig = None
-
-    for page in range(1, 100):
-        url = base_url if page == 1 else f"{base_url}/page-{page}"
-        print(f"  visiting: {url}")
-        try:
-            driver.get(url)
-            WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "a[data-rf-test-name='basicNode-homeCard']"))
-            )
-            cards = driver.find_elements(By.CSS_SELECTOR, "a[data-rf-test-name='basicNode-homeCard']")
-            if not cards:
-                print("  no listings found, stopping pagination")
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                print(f"Failed request for {city_name} (status code {response.status_code})")
                 break
 
-            sig = cards[0].get_attribute("title")
-            if first_sig is None:
-                first_sig = sig
-            elif sig == first_sig:
-                print("  repeated first listing — stopping")
+            # parse csv into rows
+            rows = list(csv.DictReader(StringIO(response.text)))
+            if not rows:
+                break  # no more listings to process
+
+            # add listing to csv
+            with open(output_file, "a", newline='', encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+                for listing in rows:
+                    # convert lot size which is in sq_ft to acres
+                    lot_size = listing.get("LOT SIZE")
+                    try:
+                        sqft = float(lot_size)
+                        acres = round(sqft / 43560, 2)
+                    except:
+                        acres = "N/A"
+
+                    # writing one listing to csv
+                    writer.writerow({
+                        "address": listing.get("ADDRESS", "N/A") or "N/A",
+                        "city": listing.get("CITY", city_name),
+                        "beds": listing.get("BEDS", "N/A") or "N/A",
+                        "baths": listing.get("BATHS", "N/A") or "N/A",
+                        "price": listing.get("PRICE", "N/A") or "N/A",
+                        "status": listing.get("STATUS", "N/A") or "N/A",
+                        "square_feet": listing.get("SQUARE FEET", "N/A") or "N/A",
+                        "acres": acres,
+                        "year_built": listing.get("YEAR BUILT", "N/A") or "N/A",
+                        "days_on_market": listing.get("DAYS ON MARKET", "N/A") or "N/A",
+                        "property_type": listing.get("PROPERTY TYPE", "N/A") or "N/A",
+                        "hoa_per_month": listing.get("HOA/MONTH", "N/A") or "N/A",
+                        "url": listing.get(
+                            "URL (SEE https://www.redfin.com/buy-a-home/comparative-market-analysis FOR INFO ON PRICING)",
+                            ""
+                        ) or "N/A"
+                    })
+
+            print(f"{len(rows)} listings added (start={start})")
+
+            # < than full page then reached end
+            if len(rows) < max_per_page:
                 break
 
-            listings = parse_listings(cards, city_id, row["city_name"])
-            all_data.extend(listings)
+            # go to next page
+            start += max_per_page
 
         except Exception as e:
-            print(f"  failed to load page: {e}")
+            print(f"skipping {city_name} ID: {region_id} due to error: {e}")
             break
 
-driver.quit()
-
-# save results
-df_new = pd.DataFrame(all_data)
-df_final = pd.concat([df_existing, df_new], ignore_index=True)
-df_final.to_csv(output_file, index=False)
-
-print(f"\nfinished scraping {len(df_ids)} cities")
-print(f"total listings scraped this run: {len(df_new)}")
-print(f"total listings saved: {len(df_final)}")
-print(f"output saved to: {output_file}")
+print("saved all listings")
