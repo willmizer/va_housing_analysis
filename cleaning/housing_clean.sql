@@ -93,3 +93,8 @@ SET acres = REPLACE(acres,' acre lot','');
 
 -- change acres to double
 ALTER TABLE housing_data MODIFY acres DOUBLE;
+
+-- convert pool and land to boolean (messed up on cleaning)
+UPDATE housing_data
+SET pool = IF(pool = 'True', 1, 0),
+    land = IF(land = 'True', 1, 0);
