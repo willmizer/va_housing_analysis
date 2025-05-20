@@ -1,4 +1,3 @@
--- cleaning / standardization of housing data (using scraped data)
 SELECT * FROM housing_data;
 
 -- Create table for importing data
@@ -80,3 +79,17 @@ SET price = REPLACE(REPLACE(price, '$', ''), ',', '');
 -- change price to int value
 ALTER TABLE housing_data MODIFY price INT;
 
+-- drop city_id column, only used to help collect scraped data
+ALTER TABLE housing_data
+DROP city_id;
+
+-- identify different values in acres
+SELECT DISTINCT acres FROM housing_data
+WHERE acres IS NOT NULL;
+
+-- standardize acres column - (0.29 acre lot) --> (0.29)
+UPDATE housing_data
+SET acres = REPLACE(acres,' acre lot','');
+
+-- change acres to double
+ALTER TABLE housing_data MODIFY acres DOUBLE;
