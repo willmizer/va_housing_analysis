@@ -46,7 +46,7 @@ The primary objectives of this project are to:
 - Standardize fields (e.g., convert text-based square footage and prices to numeric)
 - Extract structured info from messy fields (e.g., garage counts, HOA fees)
 - Handle missing values and inconsistent formats
-- Add derived columns (e.g., `is_land`, `has_pool`)
+- Add derived columns (`is_land`, more)
 
 ---
 
