@@ -1,3 +1,21 @@
+-- create table for importing data
+CREATE TABLE housing_data (
+    address VARCHAR(255),
+    city VARCHAR(100),
+    beds VARCHAR(20),
+    baths VARCHAR(20),
+    price VARCHAR(20),
+    status VARCHAR(50),
+    square_feet VARCHAR(20),
+    acres VARCHAR(20),
+    year_built VARCHAR(10),
+    days_on_market VARCHAR(20),
+    property_type VARCHAR(100),
+    hoa_per_month VARCHAR(50),
+    url VARCHAR(1000)
+);
+
+-- import data from uploads for an efficient import
 LOAD DATA INFILE "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/all_corrected_listings.csv"
 INTO TABLE housing_data
 CHARACTER SET utf8mb4
@@ -24,7 +42,7 @@ WHERE address = "N/A";
 -- standardize property types for easier analysis
 SELECT DISTINCT property_type FROM housing_data;
 
--- "Parking" is not a housing type, so remove unnecessary rows 
+-- parking isnt a housing option so remove unessisary rows 
 DELETE FROM housing_data
 WHERE property_type = "Parking";
 
@@ -45,8 +63,7 @@ UPDATE housing_data
 SET property_type = REPLACE(property_type, "Multi-Family (5+ Unit)", "Large Multi-Family");
 
 -- remove unwanted values from status
-SELECT DISTINCT status
-FROM housing_data;
+SELECT DISTINCT status FROM housing_data;
 
 DELETE FROM housing_data
 WHERE status = "Off Market";
@@ -69,7 +86,7 @@ WHERE beds = "N/A";
 ALTER TABLE housing_data
 MODIFY COLUMN beds DOUBLE;
 
--- when price is N/A there is no real address so I am removing all values 
+-- when price is N/A thier is no real address so i am removing all values 
 DELETE FROM housing_data
 WHERE price = "N/A";
 
@@ -91,7 +108,7 @@ UPDATE housing_data
 SET acres = NULL
 WHERE acres = "N/A";
 
--- change acres to double
+-- change square feet to double
 ALTER TABLE housing_data
 MODIFY COLUMN acres DOUBLE;
 
@@ -126,7 +143,7 @@ MODIFY COLUMN hoa_per_month INT;
 UPDATE housing_data SET address = TRIM(address);
 UPDATE housing_data SET url = TRIM(url);
 
--- check for any more N/A values that might have been missed
+-- check for any more N/A values that i might have missed
 SELECT * FROM housing_data
 WHERE address = "N/A"
    OR city = "N/A"
@@ -134,4 +151,9 @@ WHERE address = "N/A"
    OR property_type = "N/A"
    OR url = "N/A";
 
+-- add a primary key to track rows uniquely
+ALTER TABLE housing_data
+ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+-- final preview
 SELECT * FROM housing_data;
