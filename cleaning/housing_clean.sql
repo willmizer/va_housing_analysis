@@ -143,6 +143,11 @@ MODIFY COLUMN hoa_per_month INT;
 UPDATE housing_data SET address = TRIM(address);
 UPDATE housing_data SET url = TRIM(url);
 
+-- avoid creation of newlines in csv output
+UPDATE housing_data
+SET url = REPLACE(REPLACE(url, '\r', ''), '\n', '');
+
+
 -- check for any more N/A values that i might have missed
 SELECT * FROM housing_data
 WHERE address = "N/A"
