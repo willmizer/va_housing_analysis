@@ -19,7 +19,7 @@ The primary objectives of this project are to:
 ## Web Scraping
 
 - **Source**: Redfin city listing pages
-- **Tools**: Selenium and BeautifulSoup
+- **Tools**: requests, pandas 
 - **Approach**:
   - Scrape listings by city ID from sitemap
   - Traverse paginated listing pages until no new results
