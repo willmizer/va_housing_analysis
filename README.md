@@ -4,9 +4,15 @@ This project collects, cleans, analyzes, and models real estate data to explore 
 
 ---
 
+## Main question/Idea
+
+- How can we help homebuyers in Virginia find their ideal home faster?
+- Highlighting impact such as (model reduced search time by 40% for a simulated user profile)
+- evaluate model and discuss improvements/different methods
 ## Purpose
 
 The primary objectives of this project are to:
+
 
 - Scrape housing data from public listing sources
 - Clean and normalize the collected data
