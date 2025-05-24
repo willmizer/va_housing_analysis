@@ -9,6 +9,9 @@ This project collects, cleans, analyzes, and models real estate data to explore 
 - How can we help homebuyers in Virginia find their ideal home faster?
 - Highlighting impact such as (model reduced search time by 40% for a simulated user profile)
 - evaluate model and discuss improvements/different methods
+- Predicting price or ranking homes based on value
+- Recommending homes based on features like beds, baths, HOA, property_type
+- Identifying “good deals” based on price_per_sqft vs. similar properties
 ## Purpose
 
 The primary objectives of this project are to:
