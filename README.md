@@ -1,6 +1,6 @@
-# Virginia Housing Market Analysis & Prediction
+# **Virginia Housing Market Analysis & Prediction**
 
-This project provides a complete end-to-end pipeline for collecting, cleaning, analyzing, and modeling housing data from Virginia, sourced from Redfin. The primary goal is to build a system that helps identify desirable and cost-efficient housing options based on user preferences, and to predict home prices based on property dimensions. Users can input details such as square footage, number of beds and baths, and receive an estimated price that reflects current market conditions.
+This project delivers a end-to-end pipeline for collecting, cleaning, analyzing, and modeling housing data across Virginia, sourced from Redfin. The objective is to build a system that identifies high-value and cost-efficient housing options tailored to user preferences, while accurately predicting home prices based on key property features such as square footage, bedrooms, bathrooms, and lot size. Designed with everyday homebuyers in mind, the model emphasizes practical usability—adjusting for outliers and refining predictions to better reflect realistic market conditions for typical residential buyers.
 
 ## Code Files Included
 
@@ -158,35 +158,80 @@ Dropped the id column (not useful for my case).
 Replaced all 0 values in numeric columns (beds, baths, square_feet) with NaN to properly reflect missing data (moving from MySQL transformed all null values into 0's).
 
 2. Correlation Matrix
-Created a correlation heatmap for key numeric variables:
+Created a correlation heatmap for key numeric variables (before and after to see impact of cleaning):
 
-Helped identify relationships, e.g., strong positive correlation between beds, baths, and square_feet.
+- Helped identify relationships, e.g., strong positive correlation between beds, baths, and square_feet.
 
-Used for feature selection in modeling.
+- Used for feature selection in modeling.
 
-![Correlation Matrix](images/correlation_matrix.png) ![Correlation Matrix](images/correlation_matrix.png)
+<table>
+  <tr>
+    <td align="center">
+      <img src="images/correlation_matrix1.png" width="400" alt="Correlation Matrix Before Cleaning"/>
+      <br><em>Before cleaning</em>
+    </td>
+    <td align="center">
+      <img src="images/correlation_matrix2.png" width="400" alt="Correlation Matrix After Cleaning"/>
+      <br><em>After cleaning</em>
+    </td>
+  </tr>
+</table>
 
 
 3. Outlier Detection & Visualization
 For each numeric field (price, beds, square_feet, etc.):
 
-Displayed the top 5 extreme values.
+- Displayed the top 5 extreme values.
 
-Plotted initial distribution charts using histograms and boxplots.
+- Plotted initial distribution charts using histograms and boxplots.
 
-Identified heavy-tailed distributions across most features, indicating outliers.
+- Identified one-sided distributions across all numeric features indicating outliers.
 
 4. Quantile Analysis
-Calculated 99%, 99.5%, and 99.9% quantiles to assess outlier thresholds per field.
+- Calculated 99%, 99.5%, and 99.9% quantiles to check outlier thresholds per field.(this was another step to ensure I am choosing appropriate outliers)
 
-Informed decisions on cutoffs for cleaning extreme values.
+- Informed decisions on cutoffs for cleaning extreme values.
 
 5. Targeted Cleaning for Skewed Data
-Removed homes with extremely high days_on_market unless they were listed as Land.
+- Removed homes with extremely high days_on_market unless they were listed as Land.
 
-Dropped specific high-HOA outlier rows.
+- Dropped specific high-HOA outlier rows.
 
-Filtered out homes built before 1940 to remove unusually old listings, which often introduce data noise.
+- Filtered out homes built before 1940 to remove unusually old listings, which often introduce data noise.
+
+- Set price maximum to 3 million dollars - this is to keep our typical home buyer in mind and to increase prediction power of model later on.
+
+- Capped the number of beds and baths at the 99.9th percentile to exclude extreme outliers from skewing the analysis.
+
+- Remove square footage outliers to ensure it doesnt affect future feature modeling.
+
+Visualization examples:
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="images/price_dist1.png" width="400" alt="Correlation Matrix Before Cleaning"/>
+      <br><em>Before cleaning</em>
+    </td>
+    <td align="center">
+      <img src="images/price_dist2.png" width="400" alt="Correlation Matrix After Cleaning"/>
+      <br><em>After cleaning</em>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="images/sqft1.png" width="400" alt="Correlation Matrix Before Cleaning"/>
+      <br><em>Before cleaning</em>
+    </td>
+    <td align="center">
+      <img src="images/sqft2.png" width="400" alt="Correlation Matrix After Cleaning"/>
+      <br><em>After cleaning</em>
+    </td>
+  </tr>
+</table>
 
 ## **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
