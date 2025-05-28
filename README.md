@@ -2,7 +2,6 @@
 
 This project provides a complete end-to-end pipeline for collecting, cleaning, analyzing, and modeling housing data from Virginia, sourced from Redfin. The primary goal is to build a system that helps identify desirable and cost-efficient housing options based on user preferences, and to predict home prices based on property dimensions. Users can input details such as square footage, number of beds and baths, and receive an estimated price that reflects current market conditions.
 
-
 ## Code Files Included
 
 | File                        | Description                                                                                     |
@@ -13,15 +12,14 @@ This project provides a complete end-to-end pipeline for collecting, cleaning, a
 | `housing_data_eda.ipynb`    | Jupyter notebook that performs exploratory data analysis on cleaned housing data.               |
 | `ml_modeling.ipynb`         | Preps , builds and evaluates a Random Forest regression model to predict price per square foot. |
 
-
 ## Table of Contents
 
 1. [Project Overview](#project-overview)  
-2. [Files Included](#files-included)  
-3. [Workflow Summary](#workflow-summary)  
-4. [Prediction Approach](#prediction-approach)  
-5. [Key Results](#key-results)  
-6. [Future Improvements](#future-improvements)
+2. [Workflow Summary](#workflow-summary)  
+3. [Prediction Approach](#prediction-approach)  
+4. [Key Results](#key-results)  
+5. [Future Improvements](#future-improvements)
+
 
 ## Project Overview
 
@@ -55,7 +53,7 @@ I parsed the XML sitemap to extract:
 
 - Corresponding URLs
 
-**Output Ex**: 
+**`unique_city_ids` Ex output**: 
 
 | city_name     | city_id | url                                                       |
 | ------------- | ------- | ---------------------------------------------------------- |
@@ -66,26 +64,26 @@ I parsed the XML sitemap to extract:
 | Adwolf        | 21132   | https://www.redfin.com/city/21132/VA/Adwolf               |
 
 
-**Step 2: Scraping Listing Data by City (housing_scrape.py)**
+**Part 2: Scraping Listing Data by City (housing_scrape.py)**
 Using the city ID list, I queired RedFins main site to collect detailed housing listings:
 
-Queried each city using city_id and region_type=6 (Redfin's code for city search).
+- Queried each city using city_id and region_type=6 (Redfin's code for city search).
 
-Paginated results using start and max_per_page=100 to retrieve all data available per city.
+- Paginated results using start and max_per_page=100 to retrieve all data available per city.
 
 Key fields extracted included:
 
-Address, city, price, beds, baths, square footage, lot size (converted to acres), year built, and property type.
+- Address, city, price, beds, baths, square footage, lot size (converted to acres), year built, and property type.
 
-The API only provides lot size in square feet, but acreage is more intuitive when dealing with land analysis.
+- The RedFin website only provides lot size in square feet on their listings page, but acreage is more intuitive when dealing with land analysis.
 
 Data handling considerations:
 
-Fallbacks for missing fields ("N/A" defaults) to keep consistency
+- Fallbacks for missing fields ("N/A" defaults) to keep consistency
 
-CSV output streamed in chunks for memory efficiency (all_corrected_listings.csv)
+- CSV output streamed in chunks for memory efficiency (all_corrected_listings.csv)
 
-**Output Ex**:
+**`all_corrected_listings` Ex output**:
 
 | address               | city        | price   | acres | days_on_market | property_type           | url                                                                                   |
 |-----------------------|-------------|---------|--------|----------------|--------------------------|----------------------------------------------------------------------------------------|
@@ -98,20 +96,99 @@ CSV output streamed in chunks for memory efficiency (all_corrected_listings.csv)
 ### **Scraping Overview**
 The initial version of the scraper used Selenium and BeautifulSoup to navigate and extract listing data, but due to high latency and page load times, I transitioned to using requests with Redfin’s sitemap-based XML city IDs and their internal API. This optimization reduced total runtime from nearly 2 hours to under 10 minutes(saving approximately 92% of scraping time) for collecting data across all Virginia cities. This speed up of scraping time allows the program to become more scalable so in the future I can scale to the entire USA or multiple states etc.
 
+## **[Scraping directory](https://github.com/willmizer/va_housing_analysis/tree/main/scraping)**
 
-### 2. Cleaning (SQL)
 
-- Loaded into a MySQL table and cleaned using SQL:
-  - Removed duplicates and entries with missing or invalid data
-  - Standardized property types
-  - Converted all fields to appropriate types (e.g., price to `INT`, acres to `DOUBLE`)
-  - Added an auto-increment primary key
+### **MySQL Data Cleaning**
+
+After scraping, I used SQL to clean and standardize the raw housing data before analysis. This included:
+
+- Importing the CSV data into a MySQL table.
+
+- Removing duplicates and invalid entries (listings with missing addresses or prices).
+
+- Standardizing inconsistent property type labels (converting "Single Family Residential" to "Single Family" for simplicity).
+
+- Converting all relevant fields (beds, baths, price, square footage) from text to int or double values for proper analysis.
+
+- Trimming whitespace and cleaning up newline characters in URLs to ensure clean exports.
+
+`cleaned_housing_data.csv` output Ex:
+| id | address               | city        | beds | baths | price  | square_feet | acres | year_built | days_on_market | property_type | hoa_per_month | url                                                                                   |
+|----|------------------------|-------------|------|-------|--------|-------------|--------|-------------|----------------|----------------|----------------|----------------------------------------------------------------------------------------|
+| 1  | Tbd Lake Lndg          | Abingdon    | 0.0  | 0.0   | 299000 | 0           | 1.58   | 0           | 46             | Land           | 29             | https://www.redfin.com/VA/Unknown/Tbd-Lake-Lndg-24211/home/185413800                 |
+| 2  | 000 James St           | Bluefield   | 0.0  | 0.0   | 31500  | 0           | 1.36   | 0           | 41             | Land           | 0              | https://www.redfin.com/VA/Bluefield/James-St-24605/home/188951533                    |
+| 3  | Tbd Bridgeview Dr      | Abingdon    | 0.0  | 0.0   | 70000  | 0           | 0.5    | 0           | 354            | Land           | 0              | https://www.redfin.com/VA/Unknown/Tbd-Bridgeview-Dr-24211/home/190996715             |
+| 4  | 0 Tyler St             | Abbs Valley | 0.0  | 0.0   | 25000  | 0           | 0.0    | 0           | 41             | Land           | 0              | https://www.redfin.com/VA/Abbs-Valley/Tyler-St-24605/home/195316922                  |
+| 5  | 19510 Wynscape Dr      | Abingdon    | 3.0  | 2.5   | 470000 | 2216        | 0.45   | 2006        | 7              | Single Family  | 0              | https://www.redfin.com/VA/Abingdon/19510-Wynscape-Dr-24210/home/133101574            |
+
+Datatypes and column descriptions:
+| Column           | Data Type     | Description                                      |
+|------------------|---------------|--------------------------------------------------|
+| `id`             | INT           | Primary key                                      |
+| `address`        | VARCHAR(255)  | Property street address                          |
+| `city`           | VARCHAR(100)  | City where the property is located               |
+| `beds`           | DOUBLE        | Number of bedrooms                               |
+| `baths`          | DOUBLE        | Number of bathrooms                              |
+| `price`          | INT           | Listing price in USD                             |
+| `status`         | VARCHAR(50)   | Listing status (Active, Pending)                 |
+| `square_feet`    | INT           | Square footage of the home                       |
+| `acres`          | DOUBLE        | Lot size in acres (converted from sq ft)         |
+| `year_built`     | INT           | Year the home was built                          |
+| `days_on_market` | INT           | Days the property has been on the market         |
+| `property_type`  | VARCHAR(100)  | Type of property (Single Family, Land etc.)      |
+| `hoa_per_month`  | INT           | Monthly HOA fee (0 if no HOA fee)                |
+| `url`            | VARCHAR(1000) | Direct Redfin listing URL                        |
+
+
+
+### **Cleaning Overview**
+
+The MySQL preprocessing was relativly simple because of the future proofing I did in the scraping. A lot of the data was already very clean making the cleaning process go by more smoothly. Modeling prep cleaning and feature development were saved for the jupyter ntoebook files.
+
+## **[Cleaning directory](https://github.com/willmizer/va_housing_analysis/tree/main/cleaning)**
 
 ### 3. Exploratory Data Analysis (Python [pandas,numpy,seaborn and matplotlib])
 
-- Visualized price trends by city, property type, and size
-- Identified feature correlations and outliers
-- Segregated land-only listings from residential listings due to distinct characteristics
+Part 1: Initial Dataset Overview
+Loaded the cleaned housing dataset (cleaned_housing_data.csv) and use .info/.describe to understand what the data looked like up to this point.
+
+Dropped the id column (not useful for my case).
+
+Replaced all 0 values in numeric columns (beds, baths, square_feet) with NaN to properly reflect missing data (moving from MySQL transformed all null values into 0's).
+
+2. Correlation Matrix
+Created a correlation heatmap for key numeric variables:
+
+Helped identify relationships, e.g., strong positive correlation between beds, baths, and square_feet.
+
+Used for feature selection in modeling.
+
+![Correlation Matrix](images/correlation_matrix.png) ![Correlation Matrix](images/correlation_matrix.png)
+
+
+3. Outlier Detection & Visualization
+For each numeric field (price, beds, square_feet, etc.):
+
+Displayed the top 5 extreme values.
+
+Plotted initial distribution charts using histograms and boxplots.
+
+Identified heavy-tailed distributions across most features, indicating outliers.
+
+4. Quantile Analysis
+Calculated 99%, 99.5%, and 99.9% quantiles to assess outlier thresholds per field.
+
+Informed decisions on cutoffs for cleaning extreme values.
+
+5. Targeted Cleaning for Skewed Data
+Removed homes with extremely high days_on_market unless they were listed as Land.
+
+Dropped specific high-HOA outlier rows.
+
+Filtered out homes built before 1940 to remove unusually old listings, which often introduce data noise.
+
+## **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
 ### 4. Machine Learning Modeling(Python [Random Forest Regressor and scikit-learn])
 
