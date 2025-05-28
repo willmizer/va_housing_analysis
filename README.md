@@ -96,10 +96,10 @@ Data handling considerations:
 ### **Scraping Overview**
 The initial version of the scraper used Selenium and BeautifulSoup to navigate and extract listing data, but due to high latency and page load times, I transitioned to using requests with Redfin’s sitemap-based XML city IDs and their internal API. This optimization reduced total runtime from nearly 2 hours to under 10 minutes(saving approximately 92% of scraping time) for collecting data across all Virginia cities. This speed up of scraping time allows the program to become more scalable so in the future I can scale to the entire USA or multiple states etc.
 
-## **[Scraping directory](https://github.com/willmizer/va_housing_analysis/tree/main/scraping)**
+### **[Scraping directory](https://github.com/willmizer/va_housing_analysis/tree/main/scraping)**
 
 
-### **MySQL Data Cleaning**
+## **MySQL Data Cleaning**
 
 After scraping, I used SQL to clean and standardize the raw housing data before analysis. This included:
 
@@ -146,9 +146,9 @@ Datatypes and column descriptions:
 
 The MySQL preprocessing was relativly simple because of the future proofing I did in the scraping. A lot of the data was already very clean making the cleaning process go by more smoothly. Modeling prep cleaning and feature development were saved for the jupyter ntoebook files.
 
-## **[Cleaning directory](https://github.com/willmizer/va_housing_analysis/tree/main/cleaning)**
+### **[Cleaning directory](https://github.com/willmizer/va_housing_analysis/tree/main/cleaning)**
 
-### 3. Exploratory Data Analysis (Python [pandas,numpy,seaborn and matplotlib])
+## 3. Exploratory Data Analysis (Python [pandas,numpy,seaborn and matplotlib])
 
 Part 1: Initial Dataset Overview
 Loaded the cleaned housing dataset (cleaned_housing_data.csv) and use .info/.describe to understand what the data looked like up to this point.
@@ -273,9 +273,9 @@ For each numeric field (price, beds, square_feet, etc.):
 - On price per sqft distribution there was a strong number of homes in the lower/mid-range area, suggesting the data follows typical market trends which should help predict undervalued listed (ones that dont follow the main distribution)
 
 
-## **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
+### **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
-### 4. Machine Learning Modeling(Python [Random Forest Regressor and scikit-learn])
+## 4. Machine Learning Modeling(Python [Random Forest Regressor and scikit-learn])
 
 - Focused on predicting `price_per_sqft` for residential properties
 - Applied log transformation to normalize the target
