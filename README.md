@@ -205,16 +205,16 @@ For each numeric field (price, beds, square_feet, etc.):
 
 - Remove square footage outliers to ensure it doesnt affect future feature modeling.
 
-Visualization examples:
+**Distribution Examples**:
 
 <table>
   <tr>
     <td align="center">
-      <img src="images/price_dist1.png" width="400" alt="Correlation Matrix Before Cleaning"/>
+      <img src="images/price_dist1.png" width="400" alt="price Before Cleaning"/>
       <br><em>Before cleaning</em>
     </td>
     <td align="center">
-      <img src="images/price_dist2.png" width="400" alt="Correlation Matrix After Cleaning"/>
+      <img src="images/price_dist2.png" width="400" alt="price After Cleaning"/>
       <br><em>After cleaning</em>
     </td>
   </tr>
@@ -223,15 +223,55 @@ Visualization examples:
 <table>
   <tr>
     <td align="center">
-      <img src="images/sqft1.png" width="400" alt="Correlation Matrix Before Cleaning"/>
+      <img src="images/sqft1.png" width="400" alt="sqft Before Cleaning"/>
       <br><em>Before cleaning</em>
     </td>
     <td align="center">
-      <img src="images/sqft2.png" width="400" alt="Correlation Matrix After Cleaning"/>
+      <img src="images/sqft2.png" width="400" alt="sqft After Cleaning"/>
       <br><em>After cleaning</em>
     </td>
   </tr>
 </table>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="images/bath1.png" width="400" alt="bath Before Cleaning"/>
+      <br><em>Before cleaning</em>
+    </td>
+    <td align="center">
+      <img src="images/bath2.png" width="400" alt="bath After Cleaning"/>
+      <br><em>After cleaning</em>
+    </td>
+  </tr>
+</table>
+
+**Correlation Analysis Examples**:
+
+<div align="center">
+  <img src="images/price-sqft.png" width="1000" alt="price-sqft distribution"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+<div align="center">
+  <img src="images/price-sqft-chart.png" width="1000" alt="price-sqft correlation"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+<div align="center">
+  <img src="images/price-sqft-property_type.png" width="1000" alt="price-sqft by property type"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+<div align="center">
+  <img src="images/hoa-price-chart.png" width="1000" alt="HOA vs price"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### **Exploratory Data Analysis Overview**
+- Square footage showed the strongest positive correlation with price, confirming that larger homes generally command higher listing prices.
+- HOA fees had zero correlation with price, indicating that HOA cost alone is not a strong predictor of home value in most areas.
+- Houses with more privacy (Ranches, Single Family etc) seem to have a higher value (price/sqft) compared to condos,multi-family, townhouses etc which is something to consider moving forward
+- Price and square feet have a very strong correlation
+- On price per sqft distribution there was a strong number of homes in the lower/mid-range area, suggesting the data follows typical market trends which should help predict undervalued listed (ones that dont follow the main distribution)
+
 
 ## **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
