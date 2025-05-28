@@ -8,7 +8,7 @@ cities_df = pd.read_csv(r"C:\Users\willm\Desktop\housing_project\scraping\unique
 cities_df = cities_df[["city_name", "city_id"]].dropna().drop_duplicates()
 
 # output file path 
-output_file = r"C:\Users\willm\Desktop\housing_project\all_redfin_listings.csv"
+output_file = r"C:\Users\willm\Desktop\housing_project\all_corrected_listings.csv"
 
 # column headers to write into the CSV
 fieldnames = [
