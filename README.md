@@ -275,25 +275,28 @@ For each numeric field (price, beds, square_feet, etc.):
 
 ### **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
-## 4. Machine Learning Modeling(Python [Random Forest Regressor and scikit-learn])
+## 4. Machine Learning Modeling(Python [Random Forest Regressor using scikit-learn])
 
+Part 1: Standardizing variables for modeling
 - Focused on predicting `price_per_sqft` for residential properties
-- Applied log transformation to normalize the target
-- Encoded cities based on average price/sqft to improve location representation
-- Trained a Random Forest Regressor using engineered features
+- Created 2 seperate dataframes, one for land listings and one for property listings
+- Land listings often contain values that would be considered outliers comparitivly in residential property data (very high acreage, missing square footage, longer times on the market), but are typical for vacant land
+- Encoded cities/land based on average price/sqft to improve location representation (this one change greatly increased the prediction power of the model (+50%))
+- Trained a Random Forest Regressor using engineered features - reduces overfitting by having multipe trees to take a average from, ability to extract feature importance, dampens impact of outliers and handles non-linear realationships well
 
 ## Prediction Approach
 
 A prediction function was developed that:
 
-- Accepts user-defined preferences (beds, baths, square footage, acreage)
+- Accepts user-defined preferences (beds, baths, square footage, acreage) - based on land or property preferences
 - Ranks and filters listings to show top value-matching options
+- This ultimately helps sellers identify high-value homes in specific regions and empowers buyers to make more informed, data-driven purchasing decisions.
 
-This enables the system to recommend homes that deliver strong value relative to their size, type, and location.
+This prediction tool gives users visibility into available options and the confidence to move forward with major real estate purchases.
 
 ## Key Results
 
-- Initial model had a ±$180 error in predicting price per square foot.
+- Initial property model had a ±$180 error in predicting price per square foot.
 - After city encoding and log transformation, error was reduced to ±$37.52.
 - Most influential features: square footage, number of baths, city-encoded price, and property type.
 - Modeling `price_per_sqft` helped normalize across property sizes and improve model interpretability.
