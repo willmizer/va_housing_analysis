@@ -15,10 +15,13 @@ This project delivers a end-to-end pipeline for collecting, cleaning, analyzing,
 ## Table of Contents
 
 1. [Project Overview](#project-overview)  
-2. [Workflow Summary](#workflow-summary)  
-3. [Prediction Approach](#prediction-approach)  
-4. [Key Results](#key-results)  
-5. [Future Improvements](#future-improvements)
+2. [Workflow Summary](#workflow-summary)
+3. [MySQL Data Cleaning](#mysql-data-cleaning)
+4. [Exploratory Data Analysis](#exploratory-data-analysis)
+5. [Machine Learning Modeling](#machine-learning-modeling)
+6. [Prediction Approach](#prediction-approach)  
+7. [Key Results](#key-results)  
+8. [Future Improvements](#future-improvements)
 
 
 ## Project Overview
@@ -37,7 +40,7 @@ It includes:
 
 ## Workflow Summary
 
-### Part 1: Web Scraping Virginia Housing Listings 
+### Web Scraping Virginia Housing Listings 
 The first stage of the project was focused on collecting housing data from Redfin by automating a two-step scraping workflow:
 
 **Step 1: Extracting Unique Virginia City IDs (xml_city_ids.py)**
@@ -64,7 +67,7 @@ I parsed the XML sitemap to extract:
 | Adwolf        | 21132   | https://www.redfin.com/city/21132/VA/Adwolf               |
 
 
-**Part 2: Scraping Listing Data by City (housing_scrape.py)**
+**Step 2: Scraping Listing Data by City (housing_scrape.py)**
 Using the city ID list, I queried RedFins main site to collect detailed housing listings:
 
 - Queried each city using city_id and region_type=6 (Redfin's code for city search).
@@ -148,7 +151,7 @@ The MySQL preprocessing was relativly simple because of the future proofing I di
 
 ### **[Cleaning directory](https://github.com/willmizer/va_housing_analysis/tree/main/cleaning)**
 
-## 3. Exploratory Data Analysis (Python [pandas,numpy,seaborn and matplotlib])
+## Exploratory Data Analysis (Python [pandas,numpy,seaborn and matplotlib])
 
 Part 1: Initial Dataset Overview
 Loaded the cleaned housing dataset (cleaned_housing_data.csv) and use .info/.describe to understand what the data looked like up to this point.
@@ -275,7 +278,7 @@ For each numeric field (price, beds, square_feet, etc.):
 
 ### **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
-## 4. Machine Learning Modeling [Random Forest Regressor using scikit-learn]
+## Machine Learning Modeling [Random Forest Regressor using scikit-learn]
 
 Standardizing variables for modeling
 - Focused on predicting `price_per_sqft` for residential properties
@@ -322,6 +325,18 @@ This prediction tool gives users visibility into available options and the confi
 
 - Integrate external datasets (e.g., school ratings, crime stats, walk scores).
 - Build a user interface to allow real-time filtering and comparison.
+
+## How to run locally:
+
+# 1. Clone the repo
+git clone https://github.com/willmizer/va_housing_analysis.git
+cd va_housing_analysis
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run the app
+streamlit run app.py
 
 
 
