@@ -65,7 +65,7 @@ I parsed the XML sitemap to extract:
 
 
 **Part 2: Scraping Listing Data by City (housing_scrape.py)**
-Using the city ID list, I queired RedFins main site to collect detailed housing listings:
+Using the city ID list, I queried RedFins main site to collect detailed housing listings:
 
 - Queried each city using city_id and region_type=6 (Redfin's code for city search).
 
@@ -275,14 +275,27 @@ For each numeric field (price, beds, square_feet, etc.):
 
 ### **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
-## 4. Machine Learning Modeling(Python [Random Forest Regressor using scikit-learn])
+## 4. Machine Learning Modeling [Random Forest Regressor using scikit-learn]
 
-Part 1: Standardizing variables for modeling
+Standardizing variables for modeling
 - Focused on predicting `price_per_sqft` for residential properties
 - Created 2 seperate dataframes, one for land listings and one for property listings
-- Land listings often contain values that would be considered outliers comparitivly in residential property data (very high acreage, missing square footage, longer times on the market), but are typical for vacant land
+- Land listings often contain values that would be considered outliers comparatively in residential property data (very high acreage, missing square footage, longer times on the market), but are typical for vacant land
 - Encoded cities/land based on average price/sqft to improve location representation (this one change greatly increased the prediction power of the model (+50%))
 - Trained a Random Forest Regressor using engineered features - reduces overfitting by having multipe trees to take a average from, ability to extract feature importance, dampens impact of outliers and handles non-linear realationships well
+
+<div align="center">
+  <img src="images/property_model.png" width="1000" alt="property model"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+<div align="center">
+  <img src="images/land_model.png" width="1000" alt="land model"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+<div align="center">
+  <img src="images/pricing_model.png" width="1000" alt="pricing model"/>
+</div>
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Prediction Approach
 
@@ -294,18 +307,21 @@ A prediction function was developed that:
 
 This prediction tool gives users visibility into available options and the confidence to move forward with major real estate purchases.
 
+### **[Machine Learning directory](https://github.com/willmizer/va_housing_analysis/tree/main/modeling)**
+
 ## Key Results
 
-- Initial property model had a ±$180 error in predicting price per square foot.
-- After city encoding and log transformation, error was reduced to ±$37.52.
-- Most influential features: square footage, number of baths, city-encoded price, and property type.
-- Modeling `price_per_sqft` helped normalize across property sizes and improve model interpretability.
+- Initial property model had a ±$180 error in predicting price per square foot
+- After city encoding and log transformation, error was reduced to ±$37.52
+- city encoding and land encoding cut prediction error down by about 50% for all three models
+- log transforming reduced prediction error by an additional 20%-30%
+- Most influential features: square footage, number of baths, city-encoded price, and property type
+- Modeling `price_per_sqft` helped normalize across property sizes and improve model interpretability
 
 ## Future Improvements
 
-- Add a secondary model to predict total home price directly (using `log(price)`).
 - Integrate external datasets (e.g., school ratings, crime stats, walk scores).
 - Build a user interface to allow real-time filtering and comparison.
-- Build a price predicting function for users trying to sell or see house value
+
 
 
