@@ -17,8 +17,8 @@ This project delivers a end-to-end pipeline for collecting, cleaning, analyzing,
 1. [Project Overview](#project-overview)  
 2. [Workflow Summary](#workflow-summary)
 3. [MySQL Data Cleaning](#mysql-data-cleaning)
-4. [Exploratory Data Analysis](#exploratory-data-analysis-(Python-[pandas,numpy,seaborn-and-matplotlib]))
-5. [Machine Learning Modeling](#machine-learning-modeling-[Random-Forest-Regressor-using-scikit-learn])
+4. [Exploratory Data Analysis](#exploratory-data-analysis)
+5. [Machine Learning Modeling](#machine-learning-modeling)
 6. [Prediction Approach](#prediction-approach)  
 7. [Key Results](#key-results)  
 8. [Future Improvements](#future-improvements)
@@ -151,7 +151,7 @@ The MySQL preprocessing was relativly simple because of the future proofing I di
 
 ### **[Cleaning directory](https://github.com/willmizer/va_housing_analysis/tree/main/cleaning)**
 
-## Exploratory Data Analysis (Python [pandas,numpy,seaborn and matplotlib])
+## Exploratory Data Analysis 
 
 Part 1: Initial Dataset Overview
 Loaded the cleaned housing dataset (cleaned_housing_data.csv) and use .info/.describe to understand what the data looked like up to this point.
@@ -278,7 +278,7 @@ For each numeric field (price, beds, square_feet, etc.):
 
 ### **[Exploratory Data Analysis directory](https://github.com/willmizer/va_housing_analysis/tree/main/exploratory_data_analysis)**
 
-## Machine Learning Modeling [Random Forest Regressor using scikit-learn]
+## Machine Learning Modeling 
 
 Standardizing variables for modeling
 - Focused on predicting `price_per_sqft` for residential properties
@@ -329,14 +329,14 @@ This prediction tool gives users visibility into available options and the confi
 ## How to run locally:
 
 1. Clone the repo
-git clone https://github.com/willmizer/va_housing_analysis.git
-cd va_housing_analysis
+- git clone https://github.com/willmizer/va_housing_analysis.git
+- cd va_housing_analysis
 
 2. Install dependencies
-pip install -r requirements.txt
+- pip install -r requirements.txt
 
 3. Run the app
-streamlit run app.py
+- streamlit run app.py
 
 
 
