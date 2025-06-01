@@ -5,6 +5,7 @@ import bz2
 import pickle
 
 # Helper function to decompress and load a pickle file
+@st.cache_resource
 def decompress_pickle(file):
     with bz2.BZ2File(file, "rb") as f:
         return pickle.load(f)
