@@ -4,8 +4,8 @@ import pandas as pd
 import joblib  
 
 # load trained model and city mapping
-model = joblib.load("model_price.pbz2")  # trained model
-city_mapping = joblib.load("city_mapping.pbz2")  # city mapping
+model = joblib.load("price_predictor/model_price.pbz2")  # trained model
+city_mapping = joblib.load("price_predictor/city_mapping.pbz2")  # city mapping
 features_property = [
     "city_encoded", "beds", "baths", "square_feet", "acres", "year_built",
     "days_on_market", "hoa_per_month",
