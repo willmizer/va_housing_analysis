@@ -26,10 +26,12 @@ features_property = [
 st.title("Virginia Home Price Predictor")
 
 # Get user input for city
-city = st.text_input("Enter a Virginia City",value = "Richmond").strip().lower().title()
-if city not in city_mapping:
-    st.error("Invalid city name. Please try again.")
-    st.stop()
+city = st.text_input("Enter a Virginia City").strip().lower().title()
+
+if city:  # Only validate if something was entered
+    if city not in city_mapping:
+        st.error("Invalid city name. Please try again.")
+        st.stop()
 
 city_encoded = city_mapping[city]
 
