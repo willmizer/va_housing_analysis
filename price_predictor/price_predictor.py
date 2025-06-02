@@ -28,12 +28,14 @@ st.title("Virginia Home Price Predictor")
 # Get user input for city
 city = st.text_input("Enter a Virginia City").strip().lower().title()
 
-if city:  # Only validate if something was entered
-    if city not in city_mapping:
+if city:
+    if city in city_mapping:
+        city_encoded = city_mapping[city]
+    else:
         st.error("Invalid city name. Please try again.")
         st.stop()
 
-city_encoded = city_mapping[city]
+
 
 # Get user inputs for model features
 beds = st.slider("Bedrooms", 1, 10, 2)
