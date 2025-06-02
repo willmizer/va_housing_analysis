@@ -2,15 +2,15 @@
 
 This project delivers a end-to-end pipeline for collecting, cleaning, analyzing, and modeling housing data across Virginia, sourced from Redfin. The objective is to build a system that identifies high-value and cost-efficient housing options tailored to user preferences, while accurately predicting home prices based on key property features such as square footage, bedrooms, bathrooms, and lot size. Designed with everyday homebuyers in mind, the model emphasizes practical usability—adjusting for outliers and refining predictions to better reflect realistic market conditions for typical residential buyers.
 
-## Code Files Included
+## Code Files Included (Ctrl+Click to view respective file)
 
 | File                        | Description                                                                                     |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `housing_scrape.py`         | Scrapes housing listings from Redfin using city IDs. Saves full listing data to CSV.            |
-| `xml_city_ids.py`           | Extracts and parses city IDs from Redfin’s XML sitemap for use in scraping.                     |
-| `updated_housing_clean.sql` | SQL script for cleaning the scraped data before analysis.                                       |
-| [`housing_data_eda.ipynb`](https://nbviewer.org/github/willmizer/va_housing_analysis/blob/main/exploratory_data_analysis/housing_data_eda.ipynb)  | Jupyter notebook that performs exploratory data analysis on cleaned housing data.               |
-| `ml_modeling.ipynb`         | Preps , builds and evaluates a Random Forest regression model to predict price per square foot. |
+| [`housing_scrape.py`](https://github.com/willmizer/va_housing_analysis/blob/main/scraping/housing_scrape.py)        | Scrapes housing listings from Redfin using city IDs. Saves full listing data to CSV.            |
+| [`xml_city_ids.py`](https://github.com/willmizer/va_housing_analysis/blob/main/scraping/xml_city_ids.py)           | Extracts and parses city IDs from Redfin’s XML sitemap for use in scraping.                     |
+| [`updated_housing_clean.sql`](https://github.com/willmizer/va_housing_analysis/blob/main/cleaning/housing_clean.sql) | SQL script for cleaning the scraped data before analysis.                                       |
+| [`housing_data_eda.ipynb`](https://github.com/willmizer/va_housing_analysis/blob/main/exploratory_data_analysis/housing_data_eda.ipynb)  | Jupyter notebook that performs exploratory data analysis on cleaned housing data.               |
+| [`ml_modeling.ipynb`](https://github.com/willmizer/va_housing_analysis/blob/main/modeling/ml_modeling.ipynb)         | Preps , builds and evaluates a Random Forest regression model to predict price per square foot. |
 
 ## Table of Contents
 
