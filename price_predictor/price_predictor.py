@@ -26,7 +26,7 @@ features_property = [
 st.title("Virginia Home Price Predictor")
 
 # Get user input for city
-city = st.text_input("Enter a Virginia City").strip().lower().capitalize()
+city = st.text_input("Enter a Virginia City",value = "Richmond").strip().lower().capitalize()
 if city not in city_mapping:
     st.error("Invalid city name. Please try again.")
     st.stop()
