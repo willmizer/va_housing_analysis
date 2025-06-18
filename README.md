@@ -324,19 +324,8 @@ This prediction tool gives users visibility into available options and the confi
 ## Future Improvements
 
 - Integrate external datasets (e.g., school ratings, crime stats, walk scores).
-- Build a user interface to allow real-time filtering and comparison.
+- Build a user interface will more real-time user filtering
 
-## How to run locally:
-
-1. Clone the repo
-- git clone https://github.com/willmizer/va_housing_analysis.git
-- cd va_housing_analysis
-
-2. Install dependencies
-- pip install -r requirements.txt
-
-3. Run the app
-- streamlit run app.py
 
 
 
