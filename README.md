@@ -1,5 +1,7 @@
 # **Virginia Housing Market Analysis & Prediction**
 
+## [Try It Out!](https://vahousing-price-predictor.streamlit.app/) (10 second wait if asleep)
+
 This project delivers a end-to-end pipeline for collecting, cleaning, analyzing, and modeling housing data across Virginia, sourced from Redfin. The objective is to build a system that identifies high-value and cost-efficient housing options tailored to user preferences, while accurately predicting home prices based on key property features such as square footage, bedrooms, bathrooms, and lot size. Designed with everyday homebuyers in mind, the model emphasizes practical usability—adjusting for outliers and refining predictions to better reflect realistic market conditions for typical residential buyers.
 
 ## Code Files Included (Ctrl+Click to view respective file)
