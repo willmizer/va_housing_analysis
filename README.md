@@ -1,11 +1,10 @@
 # Virginia Housing Market Analysis & Prediction
 
 [![Live Demo](https://img.shields.io/badge/Streamlit-Live_Demo-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://vahousing-price-predictor.streamlit.app/)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)]()
 
 **An end-to-end pipeline for collecting, cleaning, analyzing, and modeling Virginia's housing market.**
 
-Sourced from Redfin, this project identifies high-value and cost-efficient housing options and predicts home prices from standard property features (square footage, beds, baths, lot size). It's built with everyday homebuyers in mind — outliers are handled deliberately so predictions reflect realistic market conditions for typical residential buyers, not luxury or edge-case listings.
+Sourced from Redfin, this project identifies high-value and cost-efficient housing options and predicts home prices from standard property features (square footage, beds, baths, lot size). It's built with everyday homebuyers in mind: outliers are handled deliberately so predictions reflect realistic market conditions for typical residential buyers, not luxury or edge-case listings.
 
 *(The live demo may take ~10 seconds to wake up if it's been idle.)*
 
@@ -32,11 +31,11 @@ Sourced from Redfin, this project identifies high-value and cost-efficient housi
 
 ### 1. Scraping (`scraping/`)
 
-**Step 1 — Extracting Virginia city IDs (`xml_city_ids.py`):** parses Redfin's sitemap XML to dynamically pull every Virginia city ID, name, and URL, instead of hardcoding a city list. This keeps the scraper scalable to any state.
+**Step 1: Extracting Virginia city IDs (`xml_city_ids.py`):** parses Redfin's sitemap XML to dynamically pull every Virginia city ID, name, and URL, instead of hardcoding a city list. This keeps the scraper scalable to any state.
 
-**Step 2 — Scraping listings by city (`housing_scrape.py`):** queries Redfin's internal search API per city (`region_type=6`), paginating with `start`/`max_per_page=100` to pull every listing. Extracts address, price, beds, baths, square footage, lot size (converted from sq ft to acres), year built, days on market, and property type, streaming output to CSV in chunks for memory efficiency.
+**Step 2: Scraping listings by city (`housing_scrape.py`):** queries Redfin's internal search API per city (`region_type=6`), paginating with `start`/`max_per_page=100` to pull every listing. Extracts address, price, beds, baths, square footage, lot size (converted from sq ft to acres), year built, days on market, and property type, streaming output to CSV in chunks for memory efficiency.
 
-The scraper originally used Selenium + BeautifulSoup, but switching to `requests` against Redfin's sitemap-based city IDs and internal API cut total runtime from ~2 hours to under 10 minutes (~92% faster) — and makes the approach scalable to the entire US.
+The scraper originally used Selenium + BeautifulSoup, but switching to `requests` against Redfin's sitemap-based city IDs and internal API cut total runtime from ~2 hours to under 10 minutes (~92% faster), and makes the approach scalable to the entire US.
 
 ### 2. Cleaning (`cleaning/`)
 
@@ -46,7 +45,7 @@ Raw scraped data was imported into MySQL and cleaned:
 - Converted beds/baths/price/square footage from text to numeric types.
 - Trimmed whitespace and newline characters from URLs for clean exports.
 
-Because of the future-proofing done during scraping, this stage was straightforward — most of the real feature engineering was saved for the modeling notebook.
+Because of the future-proofing done during scraping, this stage was straightforward; most of the real feature engineering was saved for the modeling notebook.
 
 ### 3. Exploratory Data Analysis (`exploratory_data_analysis/housing_data_eda.ipynb`)
 
@@ -73,8 +72,8 @@ Because of the future-proofing done during scraping, this stage was straightforw
 
 ### 4. Modeling (`modeling/ml_modeling.ipynb`)
 
-- Focused on predicting `price_per_sqft`, split into separate land and property dataframes (land listings have very different outlier profiles — high acreage, missing square footage, long time on market).
-- Encoded cities by average price/sqft to improve location representation — this single change improved prediction power by **+50%**.
+- Focused on predicting `price_per_sqft`, split into separate land and property dataframes (land listings have very different outlier profiles: high acreage, missing square footage, long time on market).
+- Encoded cities by average price/sqft to improve location representation; this single change improved prediction power by **+50%**.
 - Trained a Random Forest Regressor: averages across many trees reduce overfitting, dampen outlier impact, and handle non-linear relationships well.
 
 <div align="center"><img src="images/property_model.png" width="900" alt="Property model results"/></div>
@@ -121,7 +120,7 @@ pip install -r requirements.txt
 streamlit run price_predictor/price_predictor.py
 ```
 
-Run from the repo root — `price_predictor.py` loads its model files with paths relative to the project root.
+Run from the repo root: `price_predictor.py` loads its model files with paths relative to the project root.
 
 ## Future Improvements
 
@@ -131,6 +130,6 @@ Run from the repo root — `price_predictor.py` loads its model files with paths
 
 ## License
 
-This project is shared for portfolio and educational purposes — feel free to explore the code. Please reach out before reusing it commercially.
+This project is shared for portfolio and educational purposes. Feel free to explore the code, but please reach out before reusing it commercially.
 
 © 2026 Will Mizer
