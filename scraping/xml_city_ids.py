@@ -32,7 +32,7 @@ for url in root.findall("ns:url", ns):
                 "url": loc
             })
         except Exception as e:
-            print(f"error parsing: {loc} — {e}")
+            print(f"error parsing: {loc}: {e}")
 
 # convert to DataFrame and drop duplicates
 df = pd.DataFrame(entries)

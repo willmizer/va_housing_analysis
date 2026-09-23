@@ -34,6 +34,19 @@ def decompress_pickle(file):
 model = decompress_pickle("price_predictor/model_price.pbz2")
 city_mapping = decompress_pickle("price_predictor/city_mapping.pbz2")
 
+
+@st.cache_data
+def load_price_stats():
+    """Live-computed listing price stats from the cleaned dataset (same $3M cap used in modeling)."""
+    df = pd.read_csv("cleaning/cleaned_housing_data.csv")
+    prices = df["price"][(df["price"] > 0) & (df["price"] <= 3_000_000)]
+    return {
+        "n": int(prices.shape[0]),
+        "median": float(prices.median()),
+        "p10": float(prices.quantile(0.10)),
+        "p90": float(prices.quantile(0.90)),
+    }
+
 # Feature columns expected by the model
 features_property = [
     "city_encoded", "beds", "baths", "square_feet", "acres", "year_built",
@@ -44,6 +57,19 @@ features_property = [
 
 # Streamlit app title
 st.title("Virginia Home Price Predictor")
+
+with st.expander("Key Insights"):
+    price_stats = load_price_stats()
+    insights_df = pd.DataFrame([
+        {"Insight": "Baseline error (before tuning)", "Detail": "About $180 error predicting price per square foot"},
+        {"Insight": "Error after city encoding + log transform", "Detail": "Reduced to about $37.52"},
+        {"Insight": "City/land encoding impact", "Detail": "Cut prediction error by about 50% across all three models"},
+        {"Insight": "Log-transform impact", "Detail": "Cut error a further 20-30%"},
+        {"Insight": "Most influential features", "Detail": "Square footage, number of baths, city-encoded price, property type"},
+        {"Insight": f"Median listing price (n={price_stats['n']:,})", "Detail": f"${price_stats['median']:,.0f}"},
+        {"Insight": "Typical price range (10th-90th percentile)", "Detail": f"${price_stats['p10']:,.0f} - ${price_stats['p90']:,.0f}"},
+    ])
+    st.dataframe(insights_df, hide_index=True, width="stretch")
 
 # Get user input for city
 city = st.text_input("Enter a Virginia City").strip().lower().title()
