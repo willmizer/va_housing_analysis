@@ -4,6 +4,26 @@ import pandas as pd
 import bz2
 import pickle
 
+st.set_page_config(page_title="Virginia Home Price Predictor", layout="centered")
+
+# Keep multi-column rows stacked (full width) on narrow/mobile screens.
+st.markdown(
+    """
+    <style>
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: column;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Helper function to decompress and load a pickle file
 @st.cache_resource
 def decompress_pickle(file):
@@ -32,13 +52,26 @@ city = st.text_input("Enter a Virginia City").strip().lower().title()
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
 
-    # Get user inputs for model features
-    beds = st.slider("Bedrooms", 1, 10, 2)
-    baths = st.slider("Bathrooms", 1, 10, 2)
-    sqft = st.number_input("Square Feet", min_value=200, max_value=10000, value=1500)
-    acres = st.number_input("Acres", min_value=0.0, value=0.25)
-    year_built = st.number_input("Year Built", min_value=1800, value=2005)
-    days_on_market = st.number_input("Days on Market", min_value=0, value=14)
+    # Get user inputs for model features (paired into rows on desktop,
+    # the CSS above stacks them full-width on mobile)
+    col_beds, col_baths = st.columns(2)
+    with col_beds:
+        beds = st.slider("Bedrooms", 1, 10, 2)
+    with col_baths:
+        baths = st.slider("Bathrooms", 1, 10, 2)
+
+    col_sqft, col_acres = st.columns(2)
+    with col_sqft:
+        sqft = st.number_input("Square Feet", min_value=200, max_value=10000, value=1500)
+    with col_acres:
+        acres = st.number_input("Acres", min_value=0.0, value=0.25)
+
+    col_year, col_dom = st.columns(2)
+    with col_year:
+        year_built = st.number_input("Year Built", min_value=1800, value=2005)
+    with col_dom:
+        days_on_market = st.number_input("Days on Market", min_value=0, value=14)
+
     hoa = st.number_input("HOA per Month", min_value=0, value=50)
     prop_type = st.selectbox("Property Type", ["Single Family", "Townhouse", "Condo", "Multi-Family", "Ranch"])
 
