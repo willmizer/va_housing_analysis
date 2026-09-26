@@ -102,7 +102,7 @@ def load_city_bounds():
 
         year_grp = grp[(grp["year_built"] >= 1800) & (grp["year_built"] <= 2026)]
         if len(year_grp) >= 10:
-            year_min[city] = int(year_grp["year_built"].quantile(0.25))
+            year_min[city] = int(year_grp["year_built"].quantile(0.15))
 
     return acres_bounds, year_min
 
