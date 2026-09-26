@@ -33,6 +33,8 @@ def decompress_pickle(file):
 model = decompress_pickle("price_predictor/model_price.pbz2")
 city_mapping = decompress_pickle("price_predictor/city_mapping.pbz2")
 
+ALL_PROP_TYPES = ["Single Family", "Townhouse", "Condo", "Multi-Family", "Ranch"]
+
 
 @st.cache_data
 def load_price_stats():
@@ -52,11 +54,11 @@ def load_bucket_averages():
     df = df[(df["price"] > 0) & (df["price"] <= 3_000_000)]
 
     dom_buckets = {
-        "Under 2 weeks":         (0,   13),
-        "2 weeks – 1 month":     (14,  30),
-        "1 – 3 months":          (31,  90),
-        "3 – 6 months":          (91,  180),
-        "6+ months":             (181, 9999),
+        "Under 2 weeks":             (0,   13),
+        "2 weeks – 1 month":         (14,  30),
+        "1 – 3 months":              (31,  90),
+        "3 – 6 months":              (91,  180),
+        "6+ months":                 (181, 9999),
     }
     hoa_buckets = {
         "No HOA":                    (0,   0),
@@ -87,7 +89,7 @@ def load_city_bounds():
     df = df[(df["price"] > 0) & (df["price"] <= 3_000_000)].copy()
     df["city"] = df["city"].str.strip().str.lower().str.title()
 
-    acres_bounds, year_min = {}, {}
+    acres_bounds, year_min, prop_types_by_city = {}, {}, {}
     for city, grp in df.groupby("city"):
         if len(grp) < 10:
             continue
@@ -104,7 +106,10 @@ def load_city_bounds():
         if len(year_grp) >= 10:
             year_min[city] = int(year_grp["year_built"].quantile(0.15))
 
-    return acres_bounds, year_min
+        available = [t for t in ALL_PROP_TYPES if (grp["property_type"] == t).sum() >= 5]
+        prop_types_by_city[city] = available if available else ALL_PROP_TYPES
+
+    return acres_bounds, year_min, prop_types_by_city
 
 
 @st.cache_data
@@ -159,6 +164,25 @@ def get_sqft_range(beds, baths, sqft_typical, sqft_by_beds, sqft_by_baths):
     return max(lo1, lo2), min(hi1, hi2)
 
 
+def predict_with_ci(model, X_input, sqft):
+    log_price = model.predict(X_input)[0]
+    price = np.expm1(log_price)
+    ppsf = price / sqft
+
+    try:
+        tree_preds = np.array([t.predict(X_input)[0] for t in model.estimators_])
+        prices = np.expm1(tree_preds)
+        ci_lo, ci_hi = np.percentile(prices, [10, 90])
+        ppsf_lo = ci_lo / sqft
+        ppsf_hi = ci_hi / sqft
+        has_ci = True
+    except AttributeError:
+        ci_lo = ci_hi = ppsf_lo = ppsf_hi = None
+        has_ci = False
+
+    return price, ppsf, ci_lo, ci_hi, ppsf_lo, ppsf_hi, has_ci
+
+
 features_property = [
     "city_encoded", "beds", "baths", "square_feet", "acres", "year_built",
     "days_on_market", "hoa_per_month",
@@ -196,19 +220,19 @@ if city and city in city_mapping:
     city_encoded = city_mapping[city]
     baths_max_by_beds, sqft_typical, sqft_by_beds, sqft_by_baths = load_constraints()
     dom_avgs, hoa_avgs = load_bucket_averages()
-    acres_bounds, year_min_by_city = load_city_bounds()
+    acres_bounds, year_min_by_city, prop_types_by_city = load_city_bounds()
 
     acres_lo, acres_hi = acres_bounds.get(city, (0.0, 10.0))
     acres_default = round(min(max(0.25, acres_lo), acres_hi) * 10) / 10
     year_lo = year_min_by_city.get(city, 1900)
     year_hi = 2026
+    city_prop_types = prop_types_by_city.get(city, ALL_PROP_TYPES)
 
     for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500),
                  ("va_acres", acres_default), ("va_year", 2005)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
-    # Reset city-specific bounds when city changes
     if st.session_state.get("_last_city") != city:
         st.session_state["va_acres"] = acres_default
         st.session_state["va_year"] = max(2005, year_lo)
@@ -222,7 +246,6 @@ if city and city in city_mapping:
         acres_cur = float(st.session_state["va_acres"])
         year_cur  = int(st.session_state["va_year"])
 
-        # Clamp session state BEFORE rendering — widgets pick up clamped values via key=
         baths_max = baths_max_by_beds.get(beds_cur, 8.0)
         if baths_cur > baths_max:
             st.session_state["va_baths"] = baths_max
@@ -264,10 +287,7 @@ if city and city in city_mapping:
             hoa_label = st.selectbox("HOA per Month", list(hoa_avgs.keys()), index=0)
             hoa = hoa_avgs[hoa_label]
 
-        prop_type = st.selectbox(
-            "Property Type",
-            ["Single Family", "Townhouse", "Condo", "Multi-Family", "Ranch"]
-        )
+        prop_type = st.selectbox("Property Type", city_prop_types)
 
         input_data = {
             "city_encoded": city_encoded,
@@ -286,8 +306,17 @@ if city and city in city_mapping:
         }
 
         X_input = pd.DataFrame([input_data], columns=features_property)
-        log_price = model.predict(X_input)[0]
-        price = np.expm1(log_price)
-        st.success(f"Predicted Home Price: ${price:,.2f}")
+        price, ppsf, ci_lo, ci_hi, ppsf_lo, ppsf_hi, has_ci = predict_with_ci(model, X_input, sqft)
+
+        st.divider()
+        col_price, col_ppsf = st.columns(2)
+        with col_price:
+            st.metric("Predicted Price", f"${price:,.0f}")
+            if has_ci:
+                st.caption(f"80% range: ${ci_lo:,.0f} – ${ci_hi:,.0f}")
+        with col_ppsf:
+            st.metric("Price per sqft", f"${ppsf:,.0f} / sqft")
+            if has_ci:
+                st.caption(f"80% range: ${ppsf_lo:,.0f} – ${ppsf_hi:,.0f} / sqft")
 
     property_inputs()
