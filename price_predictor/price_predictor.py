@@ -137,6 +137,43 @@ if city and city in city_mapping:
 
     @st.fragment
     def property_inputs():
+        # Read current session state values FIRST — Streamlit updates them
+        # before the rerun, so these already reflect the latest drag position.
+        beds_cur  = int(st.session_state["va_beds"])
+        baths_cur = float(st.session_state["va_baths"])
+        sqft_cur  = int(st.session_state["va_sqft"])
+
+        # Compute bounds and clamp session state BEFORE rendering any widget.
+        # Widgets read from session state via key=, so they display the
+        # clamped value automatically — no post-render mutation needed.
+        warnings = []
+
+        baths_max = baths_max_by_beds.get(beds_cur, 8.0)
+        if baths_cur > baths_max:
+            st.session_state["va_baths"] = baths_max
+            baths_cur = baths_max
+            warnings.append(
+                f"Bathrooms snapped back to **{baths_max:.1f}** — the typical max for "
+                f"a {beds_cur}-bedroom Virginia home. Increase bedrooms to unlock more bathrooms."
+            )
+
+        sqft_lo, sqft_hi = get_sqft_range(beds_cur, baths_cur, sqft_typical, sqft_by_beds, sqft_by_baths)
+        if sqft_cur > sqft_hi:
+            st.session_state["va_sqft"] = sqft_hi
+            sqft_cur = sqft_hi
+            warnings.append(
+                f"Square footage snapped back to **{sqft_hi:,}** — the typical max for "
+                f"{beds_cur}bd / {baths_cur:.1f}ba in Virginia. Increase bedrooms or bathrooms to go higher."
+            )
+        elif sqft_cur < sqft_lo:
+            st.session_state["va_sqft"] = sqft_lo
+            sqft_cur = sqft_lo
+            warnings.append(
+                f"Square footage snapped back to **{sqft_lo:,}** — the typical min for "
+                f"{beds_cur}bd / {baths_cur:.1f}ba in Virginia. Decrease bedrooms or bathrooms to go lower."
+            )
+
+        # Render sliders — they read the (possibly clamped) values from session state
         col_beds, col_baths = st.columns(2)
         with col_beds:
             beds = st.slider("Bedrooms", 1, 8, step=1, key="va_beds")
@@ -144,34 +181,6 @@ if city and city in city_mapping:
             baths = st.slider("Bathrooms", 1.0, 8.0, step=0.5, key="va_baths")
 
         sqft = st.slider("Square Feet", 200, 10_000, step=100, key="va_sqft")
-
-        # --- enforce boundaries after release, snap back with warnings ---
-        warnings = []
-
-        baths_max = baths_max_by_beds.get(beds, 8.0)
-        if baths > baths_max:
-            st.session_state["va_baths"] = baths_max
-            baths = baths_max
-            warnings.append(
-                f"Bathrooms snapped back to **{baths_max:.1f}** — the typical max for "
-                f"a {beds}-bedroom Virginia home. Increase bedrooms to unlock more bathrooms."
-            )
-
-        sqft_lo, sqft_hi = get_sqft_range(beds, baths, sqft_typical, sqft_by_beds, sqft_by_baths)
-        if sqft > sqft_hi:
-            st.session_state["va_sqft"] = sqft_hi
-            sqft = sqft_hi
-            warnings.append(
-                f"Square footage snapped back to **{sqft_hi:,}** — the typical max for "
-                f"{beds}bd / {baths:.1f}ba in Virginia. Increase bedrooms or bathrooms to go higher."
-            )
-        elif sqft < sqft_lo:
-            st.session_state["va_sqft"] = sqft_lo
-            sqft = sqft_lo
-            warnings.append(
-                f"Square footage snapped back to **{sqft_lo:,}** — the typical min for "
-                f"{beds}bd / {baths:.1f}ba in Virginia. Decrease bedrooms or bathrooms to go lower."
-            )
 
         for w in warnings:
             st.warning(w, icon="⚠️")
