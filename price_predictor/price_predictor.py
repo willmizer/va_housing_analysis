@@ -173,7 +173,7 @@ city_options = sorted(city_mapping.keys())
 city = st.selectbox("Select a Virginia City", options=[""] + city_options)
 
 if city:
-    st.caption("⚠️ Slider ranges are data-driven from Virginia listings — values may snap if the combination is atypical for the selected city.")
+    st.warning("Slider ranges are data-driven from Virginia listings — values may snap if the combination is atypical for the selected city.", icon="⚠️")
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
