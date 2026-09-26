@@ -122,6 +122,14 @@ streamlit run price_predictor/price_predictor.py
 
 Run from the repo root: `price_predictor.py` loads its model files with paths relative to the project root.
 
+## Limitations
+
+- Data scraped from Redfin at a point in time — the Virginia housing market changes rapidly; predictions reflect market conditions at scrape time, not current prices.
+- Outliers were deliberately removed (homes above $3M, pre-1940 builds, extreme HOA outliers) so the model is not suited for luxury, historic, or otherwise atypical properties.
+- Virginia only — the model's city encodings and price distributions do not generalize to other states.
+- No time-series component — the model does not capture seasonal price patterns, interest rate changes, or year-over-year appreciation trends.
+- City encoding uses average price/sqft from the training data; newly incorporated areas or cities with few listings may be poorly represented or mapped to the overall mean.
+
 ## Future Improvements
 
 - Integrate external datasets (school ratings, crime stats, walk scores).
