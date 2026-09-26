@@ -82,24 +82,29 @@ def load_bucket_averages():
 
 
 @st.cache_data
-def load_acres_by_city():
+def load_city_bounds():
     df = pd.read_csv("cleaning/cleaned_housing_data.csv")
-    df = df[
-        (df["price"] > 0) & (df["price"] <= 3_000_000) &
-        (df["acres"] >= 0) & (df["acres"] <= 100)
-    ].copy()
+    df = df[(df["price"] > 0) & (df["price"] <= 3_000_000)].copy()
     df["city"] = df["city"].str.strip().str.lower().str.title()
 
-    result = {}
+    acres_bounds, year_min = {}, {}
     for city, grp in df.groupby("city"):
         if len(grp) < 10:
             continue
-        lo = round(float(grp["acres"].quantile(0.02)) * 10) / 10
-        hi = round(float(grp["acres"].quantile(0.98)) * 10) / 10
-        if hi <= lo:
-            hi = lo + 1.0
-        result[city] = (max(0.0, lo), hi)
-    return result
+
+        acres_grp = grp[(grp["acres"] >= 0) & (grp["acres"] <= 100)]
+        if len(acres_grp) >= 10:
+            lo = round(float(acres_grp["acres"].quantile(0.02)) * 10) / 10
+            hi = round(float(acres_grp["acres"].quantile(0.98)) * 10) / 10
+            if hi <= lo:
+                hi = lo + 1.0
+            acres_bounds[city] = (max(0.0, lo), hi)
+
+        year_grp = grp[(grp["year_built"] >= 1800) & (grp["year_built"] <= 2026)]
+        if len(year_grp) >= 10:
+            year_min[city] = int(year_grp["year_built"].quantile(0.02))
+
+    return acres_bounds, year_min
 
 
 @st.cache_data
@@ -191,18 +196,22 @@ if city and city in city_mapping:
     city_encoded = city_mapping[city]
     baths_max_by_beds, sqft_typical, sqft_by_beds, sqft_by_baths = load_constraints()
     dom_avgs, hoa_avgs = load_bucket_averages()
-    acres_by_city = load_acres_by_city()
+    acres_bounds, year_min_by_city = load_city_bounds()
 
-    acres_lo, acres_hi = acres_by_city.get(city, (0.0, 10.0))
+    acres_lo, acres_hi = acres_bounds.get(city, (0.0, 10.0))
     acres_default = round(min(max(0.25, acres_lo), acres_hi) * 10) / 10
+    year_lo = year_min_by_city.get(city, 1900)
+    year_hi = 2026
 
-    for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500), ("va_acres", acres_default)]:
+    for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500),
+                 ("va_acres", acres_default), ("va_year", 2005)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
-    # Reset acres bounds when city changes
+    # Reset city-specific bounds when city changes
     if st.session_state.get("_last_city") != city:
         st.session_state["va_acres"] = acres_default
+        st.session_state["va_year"] = max(2005, year_lo)
         st.session_state["_last_city"] = city
 
     @st.fragment
@@ -211,6 +220,7 @@ if city and city in city_mapping:
         baths_cur = float(st.session_state["va_baths"])
         sqft_cur  = int(st.session_state["va_sqft"])
         acres_cur = float(st.session_state["va_acres"])
+        year_cur  = int(st.session_state["va_year"])
 
         # Clamp session state BEFORE rendering — widgets pick up clamped values via key=
         baths_max = baths_max_by_beds.get(beds_cur, 8.0)
@@ -229,6 +239,9 @@ if city and city in city_mapping:
         elif acres_cur > acres_hi:
             st.session_state["va_acres"] = acres_hi
 
+        if year_cur < year_lo:
+            st.session_state["va_year"] = year_lo
+
         col_beds, col_baths = st.columns(2)
         with col_beds:
             beds = st.slider("Bedrooms", 1, 8, step=1, key="va_beds")
@@ -241,7 +254,7 @@ if city and city in city_mapping:
         with col_acres:
             acres = st.slider("Acres", acres_lo, acres_hi, step=0.1, key="va_acres")
         with col_year:
-            year_built = st.number_input("Year Built", min_value=1800, value=2005)
+            year_built = st.slider("Year Built", year_lo, year_hi, step=1, key="va_year")
 
         col_dom, col_hoa = st.columns(2)
         with col_dom:
