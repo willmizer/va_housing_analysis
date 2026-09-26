@@ -173,12 +173,7 @@ city_options = sorted(city_mapping.keys())
 city = st.selectbox("Select a Virginia City", options=[""] + city_options)
 
 if city:
-    st.warning(
-        "Sliders are constrained to realistic Virginia listing ranges. "
-        "If a value snaps when adjusting another field, the combination falls "
-        "outside typical data for this area — try adjusting other fields first.",
-        icon="⚠️",
-    )
+    st.caption("⚠️ Slider ranges are data-driven from Virginia listings — values may snap if the combination is atypical for the selected city.")
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
@@ -237,11 +232,13 @@ if city and city in city_mapping:
 
         sqft = st.slider("Square Feet", 200, 10_000, step=100, key="va_sqft")
 
-        col_acres, col_year = st.columns(2)
+        col_acres, col_year, col_prop = st.columns(3)
         with col_acres:
             acres = st.slider("Acres", acres_lo, acres_hi, step=0.1, key="va_acres")
         with col_year:
             year_built = st.slider("Year Built", year_lo, year_hi, step=1, key="va_year")
+        with col_prop:
+            prop_type = st.selectbox("Property Type", city_prop_types)
 
         col_dom, col_hoa = st.columns(2)
         with col_dom:
@@ -250,8 +247,6 @@ if city and city in city_mapping:
         with col_hoa:
             hoa_label = st.selectbox("HOA per Month", list(hoa_avgs.keys()), index=0)
             hoa = hoa_avgs[hoa_label]
-
-        prop_type = st.selectbox("Property Type", city_prop_types)
 
         input_data = {
             "city_encoded": city_encoded,
