@@ -1,14 +1,17 @@
+import os
 import requests
 import csv
 import pandas as pd
 from io import StringIO
 
-# load the list of cities 
-cities_df = pd.read_csv(r"C:\Users\willm\Desktop\housing_project\scraping\unique_city_ids.csv")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# load the list of cities
+cities_df = pd.read_csv(os.path.join(BASE_DIR, "unique_city_ids.csv"))
 cities_df = cities_df[["city_name", "city_id"]].dropna().drop_duplicates()
 
-# output file path 
-output_file = r"C:\Users\willm\Desktop\housing_project\all_corrected_listings.csv"
+# output file path
+output_file = os.path.join(BASE_DIR, "all_corrected_listings.csv")
 
 # column headers to write into the CSV
 fieldnames = [
