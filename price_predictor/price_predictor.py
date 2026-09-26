@@ -47,12 +47,11 @@ def load_price_stats():
 
 
 @st.cache_data
-def load_sqft_constraints():
+def load_constraints():
     """
-    Build sqft lookup tables keyed by (beds, baths_rounded) so the sqft
-    slider range tightens as beds+baths are selected, without creating a
-    circular beds↔baths dependency that causes jarring slider jumps.
-    Uses 5th/95th percentiles to avoid outlier distortion.
+    One-way constraint chain: beds → baths ceiling → sqft range.
+    baths never constrains beds, so moving beds is always snap-free.
+    Sqft only snaps if the current value falls outside the new range.
     """
     df = pd.read_csv("cleaning/cleaned_housing_data.csv")
     df = df[
@@ -64,17 +63,24 @@ def load_sqft_constraints():
     df["baths_r"] = (df["baths"] * 2).round() / 2
     df["beds_i"] = df["beds"].round().clip(1, 8).astype(int)
 
-    # joint lookup: (beds, baths) → sqft range
-    sqft_by_beds_baths = {}
+    # baths ceiling per bed count (p95)
+    baths_max_by_beds = {}
+    for b, grp in df.groupby("beds_i"):
+        if len(grp) < 15:
+            continue
+        hi = round(float(grp["baths_r"].quantile(0.95)) * 2) / 2
+        baths_max_by_beds[int(b)] = min(8.0, float(hi))
+
+    # sqft range keyed by (beds, baths) — joint lookup, marginal fallbacks
+    sqft_joint = {}
     for (beds, baths), grp in df.groupby(["beds_i", "baths_r"]):
         if len(grp) < 10:
             continue
-        sqft_by_beds_baths[(int(beds), round(float(baths) * 2) / 2)] = (
+        sqft_joint[(int(beds), round(float(baths) * 2) / 2)] = (
             max(200, int(grp["square_feet"].quantile(0.05))),
             min(10_000, int(grp["square_feet"].quantile(0.95))),
         )
 
-    # marginal fallbacks (used when joint key has no data)
     sqft_by_beds, sqft_by_baths = {}, {}
     for b, grp in df.groupby("beds_i"):
         if len(grp) < 15:
@@ -91,15 +97,14 @@ def load_sqft_constraints():
             min(10_000, int(grp["square_feet"].quantile(0.95))),
         )
 
-    return sqft_by_beds_baths, sqft_by_beds, sqft_by_baths
+    return baths_max_by_beds, sqft_joint, sqft_by_beds, sqft_by_baths
 
 
-def compute_sqft_bounds(beds, baths, sqft_by_beds_baths, sqft_by_beds, sqft_by_baths):
+def compute_sqft_bounds(beds, baths, sqft_joint, sqft_by_beds, sqft_by_baths):
     bk = round(float(baths) * 2) / 2
     key = (int(beds), bk)
-
-    if key in sqft_by_beds_baths:
-        lo, hi = sqft_by_beds_baths[key]
+    if key in sqft_joint:
+        lo, hi = sqft_joint[key]
     else:
         lo1, hi1 = sqft_by_beds.get(int(beds), (200, 10_000))
         lo2, hi2 = sqft_by_baths.get(bk, (200, 10_000))
@@ -108,7 +113,6 @@ def compute_sqft_bounds(beds, baths, sqft_by_beds_baths, sqft_by_beds, sqft_by_b
         if hi - lo < 400:
             lo = min(lo1, lo2)
             hi = max(hi1, hi2)
-
     lo = int((lo // 100) * 100)
     hi = int(((hi + 99) // 100) * 100)
     if hi <= lo:
@@ -142,32 +146,36 @@ city = st.text_input("Enter a Virginia City").strip().lower().title()
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
-    sqft_by_beds_baths, sqft_by_beds, sqft_by_baths = load_sqft_constraints()
+    baths_max_by_beds, sqft_joint, sqft_by_beds, sqft_by_baths = load_constraints()
 
-    # initialize session state on first load
     for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
     @st.fragment
     def property_inputs():
-        col_beds, col_baths = st.columns(2)
-        with col_beds:
-            beds = st.slider("Bedrooms", 1, 8, step=1, key="va_beds")
-        with col_baths:
-            baths = st.slider("Bathrooms", 1.0, 8.0, step=0.5, key="va_baths")
+        # beds: always full range — never constrained by other fields
+        beds = st.slider("Bedrooms", 1, 8, step=1, key="va_beds")
 
+        # baths: ceiling moves with beds; only snaps if current value exceeds new ceiling
+        baths_hi = baths_max_by_beds.get(beds, 8.0)
+        if st.session_state["va_baths"] > baths_hi:
+            st.session_state["va_baths"] = baths_hi
+        baths = st.slider("Bathrooms", 1.0, baths_hi, step=0.5, key="va_baths")
+
+        # sqft: range narrows with beds+baths; only snaps if current value is out of range
         sqft_lo, sqft_hi = compute_sqft_bounds(
-            beds, baths, sqft_by_beds_baths, sqft_by_beds, sqft_by_baths
+            beds, baths, sqft_joint, sqft_by_beds, sqft_by_baths
         )
-        # clamp stored sqft to new bounds before rendering
-        st.session_state["va_sqft"] = int(
-            max(sqft_lo, min(sqft_hi, st.session_state.get("va_sqft", 1_500)))
-        )
+        cur_sqft = st.session_state["va_sqft"]
+        if cur_sqft < sqft_lo:
+            st.session_state["va_sqft"] = sqft_lo
+        elif cur_sqft > sqft_hi:
+            st.session_state["va_sqft"] = sqft_hi
         sqft = st.slider("Square Feet", sqft_lo, sqft_hi, step=100, key="va_sqft")
 
         st.caption(
-            f"Square footage range is data-driven from Virginia listings · "
+            f"Baths and sqft limits are data-driven from Virginia listings · "
             f"Typical for {beds}bd / {baths}ba: {sqft_lo:,} – {sqft_hi:,} sqft"
         )
 
