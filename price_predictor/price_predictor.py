@@ -164,23 +164,10 @@ def get_sqft_range(beds, baths, sqft_typical, sqft_by_beds, sqft_by_baths):
     return max(lo1, lo2), min(hi1, hi2)
 
 
-def predict_with_ci(model, X_input, sqft):
+def predict(model, X_input, sqft):
     log_price = model.predict(X_input)[0]
     price = np.expm1(log_price)
-    ppsf = price / sqft
-
-    try:
-        tree_preds = np.array([t.predict(X_input)[0] for t in model.estimators_])
-        prices = np.expm1(tree_preds)
-        ci_lo, ci_hi = np.percentile(prices, [10, 90])
-        ppsf_lo = ci_lo / sqft
-        ppsf_hi = ci_hi / sqft
-        has_ci = True
-    except AttributeError:
-        ci_lo = ci_hi = ppsf_lo = ppsf_hi = None
-        has_ci = False
-
-    return price, ppsf, ci_lo, ci_hi, ppsf_lo, ppsf_hi, has_ci
+    return price, price / sqft
 
 
 features_property = [
@@ -306,17 +293,13 @@ if city and city in city_mapping:
         }
 
         X_input = pd.DataFrame([input_data], columns=features_property)
-        price, ppsf, ci_lo, ci_hi, ppsf_lo, ppsf_hi, has_ci = predict_with_ci(model, X_input, sqft)
+        price, ppsf = predict(model, X_input, sqft)
 
         st.divider()
         col_price, col_ppsf = st.columns(2)
         with col_price:
             st.metric("Predicted Price", f"${price:,.0f}")
-            if has_ci:
-                st.caption(f"80% range: ${ci_lo:,.0f} – ${ci_hi:,.0f}")
         with col_ppsf:
             st.metric("Price per sqft", f"${ppsf:,.0f} / sqft")
-            if has_ci:
-                st.caption(f"80% range: ${ppsf_lo:,.0f} – ${ppsf_hi:,.0f} / sqft")
 
     property_inputs()
