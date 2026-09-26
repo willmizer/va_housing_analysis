@@ -47,10 +47,11 @@ def load_price_stats():
 
 
 @st.cache_data
-def load_typical_ranges():
+def load_constraints():
     """
-    Build a joint (beds, baths) → sqft typical range lookup (p10–p90).
-    Used only for contextual feedback — sliders stay at full range always.
+    One-way chain: beds → baths ceiling; (beds, baths) → sqft range.
+    All sliders render at full range — values snap back on release if
+    the user exceeds the data-driven boundary, with a warning shown.
     """
     df = pd.read_csv("cleaning/cleaned_housing_data.csv")
     df = df[
@@ -62,52 +63,44 @@ def load_typical_ranges():
     df["baths_r"] = (df["baths"] * 2).round() / 2
     df["beds_i"] = df["beds"].round().clip(1, 8).astype(int)
 
-    typical = {}
-    for (beds, baths), grp in df.groupby(["beds_i", "baths_r"]):
-        if len(grp) < 10:
-            continue
-        typical[(int(beds), round(float(baths) * 2) / 2)] = (
-            int(grp["square_feet"].quantile(0.10)),
-            int(grp["square_feet"].quantile(0.90)),
-        )
-
-    # marginal fallbacks
-    by_beds, by_baths = {}, {}
+    baths_max_by_beds = {}
     for b, grp in df.groupby("beds_i"):
         if len(grp) >= 15:
-            by_beds[int(b)] = (
+            hi = round(float(grp["baths_r"].quantile(0.95)) * 2) / 2
+            baths_max_by_beds[int(b)] = min(8.0, float(hi))
+
+    sqft_typical = {}
+    for (beds, baths), grp in df.groupby(["beds_i", "baths_r"]):
+        if len(grp) >= 10:
+            sqft_typical[(int(beds), round(float(baths) * 2) / 2)] = (
+                int(grp["square_feet"].quantile(0.10)),
+                int(grp["square_feet"].quantile(0.90)),
+            )
+
+    sqft_by_beds, sqft_by_baths = {}, {}
+    for b, grp in df.groupby("beds_i"):
+        if len(grp) >= 15:
+            sqft_by_beds[int(b)] = (
                 int(grp["square_feet"].quantile(0.10)),
                 int(grp["square_feet"].quantile(0.90)),
             )
     for b, grp in df.groupby("baths_r"):
         if len(grp) >= 15:
-            by_baths[round(float(b) * 2) / 2] = (
+            sqft_by_baths[round(float(b) * 2) / 2] = (
                 int(grp["square_feet"].quantile(0.10)),
                 int(grp["square_feet"].quantile(0.90)),
             )
 
-    return typical, by_beds, by_baths
+    return baths_max_by_beds, sqft_typical, sqft_by_beds, sqft_by_baths
 
 
-def get_typical_sqft(beds, baths, typical, by_beds, by_baths):
+def get_sqft_range(beds, baths, sqft_typical, sqft_by_beds, sqft_by_baths):
     bk = round(float(baths) * 2) / 2
-    if (int(beds), bk) in typical:
-        return typical[(int(beds), bk)]
-    lo1, hi1 = by_beds.get(int(beds), (200, 10_000))
-    lo2, hi2 = by_baths.get(bk, (200, 10_000))
+    if (int(beds), bk) in sqft_typical:
+        return sqft_typical[(int(beds), bk)]
+    lo1, hi1 = sqft_by_beds.get(int(beds), (200, 10_000))
+    lo2, hi2 = sqft_by_baths.get(bk, (200, 10_000))
     return max(lo1, lo2), min(hi1, hi2)
-
-
-def sqft_feedback(sqft, typ_lo, typ_hi):
-    """Return (icon, message) based on how far sqft is from the typical range."""
-    if typ_lo <= sqft <= typ_hi:
-        return "✅", f"Typical for this config ({typ_lo:,} – {typ_hi:,} sqft)"
-    pct_below = (typ_lo - sqft) / typ_lo if sqft < typ_lo else 0
-    pct_above = (sqft - typ_hi) / typ_hi if sqft > typ_hi else 0
-    gap = max(pct_below, pct_above)
-    if gap < 0.30:
-        return "🟡", f"Slightly outside typical range ({typ_lo:,} – {typ_hi:,} sqft)"
-    return "🟠", f"Unusual for this config — prediction less reliable ({typ_lo:,} – {typ_hi:,} sqft typical)"
 
 
 features_property = [
@@ -136,7 +129,7 @@ city = st.text_input("Enter a Virginia City").strip().lower().title()
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
-    typical, by_beds, by_baths = load_typical_ranges()
+    baths_max_by_beds, sqft_typical, sqft_by_beds, sqft_by_baths = load_constraints()
 
     for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500)]:
         if k not in st.session_state:
@@ -152,9 +145,42 @@ if city and city in city_mapping:
 
         sqft = st.slider("Square Feet", 200, 10_000, step=100, key="va_sqft")
 
-        typ_lo, typ_hi = get_typical_sqft(beds, baths, typical, by_beds, by_baths)
-        icon, msg = sqft_feedback(sqft, typ_lo, typ_hi)
-        st.caption(f"{icon} {msg}")
+        # --- enforce boundaries after release, snap back with warnings ---
+        warnings = []
+
+        baths_max = baths_max_by_beds.get(beds, 8.0)
+        if baths > baths_max:
+            st.session_state["va_baths"] = baths_max
+            baths = baths_max
+            warnings.append(
+                f"Bathrooms snapped back to **{baths_max:.1f}** — the typical max for "
+                f"a {beds}-bedroom Virginia home. Increase bedrooms to unlock more bathrooms."
+            )
+
+        sqft_lo, sqft_hi = get_sqft_range(beds, baths, sqft_typical, sqft_by_beds, sqft_by_baths)
+        if sqft > sqft_hi:
+            st.session_state["va_sqft"] = sqft_hi
+            sqft = sqft_hi
+            warnings.append(
+                f"Square footage snapped back to **{sqft_hi:,}** — the typical max for "
+                f"{beds}bd / {baths:.1f}ba in Virginia. Increase bedrooms or bathrooms to go higher."
+            )
+        elif sqft < sqft_lo:
+            st.session_state["va_sqft"] = sqft_lo
+            sqft = sqft_lo
+            warnings.append(
+                f"Square footage snapped back to **{sqft_lo:,}** — the typical min for "
+                f"{beds}bd / {baths:.1f}ba in Virginia. Decrease bedrooms or bathrooms to go lower."
+            )
+
+        for w in warnings:
+            st.warning(w, icon="⚠️")
+
+        if not warnings:
+            st.caption(
+                f"✅ Typical for {beds}bd / {baths:.1f}ba Virginia homes: "
+                f"{sqft_lo:,} – {sqft_hi:,} sqft"
+            )
 
         col_acres, col_year = st.columns(2)
         with col_acres:
