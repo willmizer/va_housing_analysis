@@ -105,9 +105,24 @@ housing_project/
 │   ├── price_predictor.py        # Streamlit app (entry point)
 │   ├── model_price.pbz2          # Trained, compressed model
 │   └── city_mapping.pbz2         # City → encoded price mapping
+│                                 # Smart UI: slider bounds, year built floors, acre ranges,
+│                                 # and property type options all adapt to the selected city
+│                                 # based on real listing distributions (p2/p15 percentiles)
 ├── images/                       # EDA & model result charts
 └── requirements.txt
 ```
+
+## Interactive Predictor Features
+
+The Streamlit app goes beyond a basic form — every input is constrained by real listing data for the selected city:
+
+- **City selector** with search-as-you-type across all scraped Virginia cities.
+- **Bedroom/bathroom/sqft sliders** bounded by data-driven correlations — sqft range narrows based on the current bed/bath combo using joint p10/p90 percentiles from actual listings.
+- **Acres slider** bounded by that city's p2/p98 acre range so rural and urban cities have appropriate limits.
+- **Year built slider** with a city-specific p15 floor — prevents unrealistically old builds in cities where the housing stock is mostly modern.
+- **Property type** filtered to only show types with 5+ listings in the selected city.
+- **Days on market and HOA** presented as labeled buckets mapped to real average values from the data.
+- **Predicted price and price per sqft** displayed side by side.
 
 ## Run Locally
 
@@ -134,7 +149,7 @@ Run from the repo root: `price_predictor.py` loads its model files with paths re
 
 - Integrate external datasets (school ratings, crime stats, walk scores).
 - Scale scraping and modeling to the entire US, not just Virginia.
-- Build a user interface with more real-time filtering.
+- Add a time-series component to capture seasonal price patterns and year-over-year appreciation.
 
 ## License
 
