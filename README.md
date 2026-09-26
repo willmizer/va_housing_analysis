@@ -80,9 +80,9 @@ Because of the future-proofing done during scraping, this stage was straightforw
 
 ## Key Results
 
-- Initial property model: **±$180** error predicting price per square foot.
-- After city encoding + log transformation: error reduced to **±$37.52**.
-- City/land encoding alone cut prediction error by ~50% across all three models; log-transforming cut it a further 20–30%.
+- Initial property model: **±$180** MAE predicting price per square foot (mean-price baseline).
+- After city encoding + log transformation: error reduced to **±$37.52** — a **~79% total reduction**.
+- City/location encoding alone accounted for ~50% of the error reduction; log-transforming skewed features cut it a further 20–30%.
 - Most influential features: square footage, number of baths, city-encoded price, and property type.
 
 ## Project Structure
