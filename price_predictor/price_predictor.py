@@ -44,16 +44,16 @@ def load_bucket_averages():
 
     dom_buckets = {
         "Under 2 weeks":             (0,   13),
-        "2 weeks – 1 month":         (14,  30),
-        "1 – 3 months":              (31,  90),
-        "3 – 6 months":              (91,  180),
+        "2 weeks - 1 month":         (14,  30),
+        "1 - 3 months":              (31,  90),
+        "3 - 6 months":              (91,  180),
         "6+ months":                 (181, 9999),
     }
     hoa_buckets = {
         "No HOA":                    (0,   0),
-        "Low ($1–$100/mo)":          (1,   100),
-        "Moderate ($101–$300/mo)":   (101, 300),
-        "High ($301–$600/mo)":       (301, 600),
+        "Low ($1-$100/mo)":          (1,   100),
+        "Moderate ($101-$300/mo)":   (101, 300),
+        "High ($301-$600/mo)":       (301, 600),
         "Premium ($600+/mo)":        (601, 99999),
     }
 
@@ -173,7 +173,7 @@ city_options = sorted(city_mapping.keys())
 city = st.selectbox("Select a Virginia City", options=[""] + city_options)
 
 if city:
-    st.warning("Slider ranges are data-driven from Virginia listings — values may snap if the combination is atypical for the selected city.", icon="⚠️")
+    st.warning("Slider ranges are data-driven from Virginia listings. Values may snap if the combination is atypical for the selected city.", icon="⚠️")
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
