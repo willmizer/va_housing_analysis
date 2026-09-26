@@ -207,7 +207,7 @@ if city and city in city_mapping:
 
         col_acres, col_year = st.columns(2)
         with col_acres:
-            acres = st.number_input("Acres", min_value=0.0, value=0.25)
+            acres = st.number_input("Acres", min_value=0.0, value=0.25, step=0.1)
         with col_year:
             year_built = st.number_input("Year Built", min_value=1800, value=2005)
 
