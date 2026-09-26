@@ -47,6 +47,41 @@ def load_price_stats():
 
 
 @st.cache_data
+def load_bucket_averages():
+    df = pd.read_csv("cleaning/cleaned_housing_data.csv")
+    df = df[(df["price"] > 0) & (df["price"] <= 3_000_000)]
+
+    dom_buckets = {
+        "Under 2 weeks":   (0,   13),
+        "2 weeks – 1 month": (14,  30),
+        "1 – 3 months":    (31,  90),
+        "3 – 6 months":    (91, 180),
+        "6+ months":       (181, 9999),
+    }
+    hoa_buckets = {
+        "No HOA":              (0,   0),
+        "Low ($1–$100/mo)":    (1,   100),
+        "Moderate ($101–$300/mo)": (101, 300),
+        "High ($301–$600/mo)": (301, 600),
+        "Premium ($600+/mo)":  (601, 99999),
+    }
+
+    dom_avgs, hoa_avgs = {}, {}
+    for label, (lo, hi) in dom_buckets.items():
+        vals = df["days_on_market"][(df["days_on_market"] >= lo) & (df["days_on_market"] <= hi)]
+        dom_avgs[label] = float(vals.mean()) if len(vals) > 0 else (lo + hi) / 2
+
+    for label, (lo, hi) in hoa_buckets.items():
+        if lo == 0 and hi == 0:
+            hoa_avgs[label] = 0.0
+        else:
+            vals = df["hoa_per_month"][(df["hoa_per_month"] >= lo) & (df["hoa_per_month"] <= hi)]
+            hoa_avgs[label] = float(vals.mean()) if len(vals) > 0 else (lo + min(hi, 9999)) / 2
+
+    return dom_avgs, hoa_avgs
+
+
+@st.cache_data
 def load_constraints():
     """
     One-way chain: beds → baths ceiling; (beds, baths) → sqft range.
@@ -130,6 +165,7 @@ city = st.text_input("Enter a Virginia City").strip().lower().title()
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
     baths_max_by_beds, sqft_typical, sqft_by_beds, sqft_by_baths = load_constraints()
+    dom_avgs, hoa_avgs = load_bucket_averages()
 
     for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500)]:
         if k not in st.session_state:
@@ -177,9 +213,11 @@ if city and city in city_mapping:
 
         col_dom, col_hoa = st.columns(2)
         with col_dom:
-            days_on_market = st.number_input("Days on Market", min_value=0, value=14)
+            dom_label = st.selectbox("Days on Market", list(dom_avgs.keys()), index=1)
+            days_on_market = dom_avgs[dom_label]
         with col_hoa:
-            hoa = st.number_input("HOA per Month", min_value=0, value=50)
+            hoa_label = st.selectbox("HOA per Month", list(hoa_avgs.keys()), index=0)
+            hoa = hoa_avgs[hoa_label]
 
         prop_type = st.selectbox(
             "Property Type",
