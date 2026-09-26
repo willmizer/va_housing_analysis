@@ -52,18 +52,18 @@ def load_bucket_averages():
     df = df[(df["price"] > 0) & (df["price"] <= 3_000_000)]
 
     dom_buckets = {
-        "Under 2 weeks":   (0,   13),
-        "2 weeks – 1 month": (14,  30),
-        "1 – 3 months":    (31,  90),
-        "3 – 6 months":    (91, 180),
-        "6+ months":       (181, 9999),
+        "Under 2 weeks":         (0,   13),
+        "2 weeks – 1 month":     (14,  30),
+        "1 – 3 months":          (31,  90),
+        "3 – 6 months":          (91,  180),
+        "6+ months":             (181, 9999),
     }
     hoa_buckets = {
-        "No HOA":              (0,   0),
-        "Low ($1–$100/mo)":    (1,   100),
-        "Moderate ($101–$300/mo)": (101, 300),
-        "High ($301–$600/mo)": (301, 600),
-        "Premium ($600+/mo)":  (601, 99999),
+        "No HOA":                    (0,   0),
+        "Low ($1–$100/mo)":          (1,   100),
+        "Moderate ($101–$300/mo)":   (101, 300),
+        "High ($301–$600/mo)":       (301, 600),
+        "Premium ($600+/mo)":        (601, 99999),
     }
 
     dom_avgs, hoa_avgs = {}, {}
@@ -82,12 +82,28 @@ def load_bucket_averages():
 
 
 @st.cache_data
+def load_acres_by_city():
+    df = pd.read_csv("cleaning/cleaned_housing_data.csv")
+    df = df[
+        (df["price"] > 0) & (df["price"] <= 3_000_000) &
+        (df["acres"] >= 0) & (df["acres"] <= 100)
+    ].copy()
+    df["city"] = df["city"].str.strip().str.lower().str.title()
+
+    result = {}
+    for city, grp in df.groupby("city"):
+        if len(grp) < 10:
+            continue
+        lo = round(float(grp["acres"].quantile(0.02)) * 10) / 10
+        hi = round(float(grp["acres"].quantile(0.98)) * 10) / 10
+        if hi <= lo:
+            hi = lo + 1.0
+        result[city] = (max(0.0, lo), hi)
+    return result
+
+
+@st.cache_data
 def load_constraints():
-    """
-    One-way chain: beds → baths ceiling; (beds, baths) → sqft range.
-    All sliders render at full range — values snap back on release if
-    the user exceeds the data-driven boundary, with a warning shown.
-    """
     df = pd.read_csv("cleaning/cleaned_housing_data.csv")
     df = df[
         (df["price"] > 0) & (df["price"] <= 3_000_000) &
@@ -160,30 +176,41 @@ with st.expander("Key Insights"):
     ])
     st.dataframe(insights_df, hide_index=True, width="stretch")
 
-city = st.text_input("Enter a Virginia City").strip().lower().title()
+city_options = sorted(city_mapping.keys())
+city = st.selectbox("Select a Virginia City", options=[""] + city_options)
+
+if city:
+    st.warning(
+        "Sliders are constrained to realistic Virginia listing ranges. "
+        "If a value snaps when adjusting another field, the combination falls "
+        "outside typical data for this area — try adjusting other fields first.",
+        icon="⚠️",
+    )
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
     baths_max_by_beds, sqft_typical, sqft_by_beds, sqft_by_baths = load_constraints()
     dom_avgs, hoa_avgs = load_bucket_averages()
+    acres_by_city = load_acres_by_city()
 
-    for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500)]:
+    acres_lo, acres_hi = acres_by_city.get(city, (0.0, 10.0))
+    acres_default = round(min(max(0.25, acres_lo), acres_hi) * 10) / 10
+
+    for k, v in [("va_baths", 2.0), ("va_beds", 3), ("va_sqft", 1_500), ("va_acres", acres_default)]:
         if k not in st.session_state:
             st.session_state[k] = v
 
+    # Reset acres bounds when city changes
+    if st.session_state.get("_last_city") != city:
+        st.session_state["va_acres"] = acres_default
+        st.session_state["_last_city"] = city
+
     @st.fragment
     def property_inputs():
-        # Read current session state values FIRST — Streamlit updates them
-        # before the rerun, so these already reflect the latest drag position.
         beds_cur  = int(st.session_state["va_beds"])
         baths_cur = float(st.session_state["va_baths"])
         sqft_cur  = int(st.session_state["va_sqft"])
-
-        st.caption(
-            "Sliders are constrained to realistic Virginia listing ranges. "
-            "If a value snaps when adjusting another field, it means the combination "
-            "falls outside what's typical in the data — try adjusting the other sliders first."
-        )
+        acres_cur = float(st.session_state["va_acres"])
 
         # Clamp session state BEFORE rendering — widgets pick up clamped values via key=
         baths_max = baths_max_by_beds.get(beds_cur, 8.0)
@@ -197,6 +224,11 @@ if city and city in city_mapping:
         elif sqft_cur < sqft_lo:
             st.session_state["va_sqft"] = sqft_lo
 
+        if acres_cur < acres_lo:
+            st.session_state["va_acres"] = acres_lo
+        elif acres_cur > acres_hi:
+            st.session_state["va_acres"] = acres_hi
+
         col_beds, col_baths = st.columns(2)
         with col_beds:
             beds = st.slider("Bedrooms", 1, 8, step=1, key="va_beds")
@@ -207,7 +239,7 @@ if city and city in city_mapping:
 
         col_acres, col_year = st.columns(2)
         with col_acres:
-            acres = st.number_input("Acres", min_value=0.0, value=0.25, step=0.1)
+            acres = st.slider("Acres", acres_lo, acres_hi, step=0.1, key="va_acres")
         with col_year:
             year_built = st.number_input("Year Built", min_value=1800, value=2005)
 
@@ -246,6 +278,3 @@ if city and city in city_mapping:
         st.success(f"Predicted Home Price: ${price:,.2f}")
 
     property_inputs()
-
-elif city:
-    st.error("Invalid city name. Please try again.")
