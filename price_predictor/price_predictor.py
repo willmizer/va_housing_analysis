@@ -1,27 +1,20 @@
+import os
+
 import streamlit as st
 import numpy as np
 import pandas as pd
 import bz2
 import pickle
 
-st.set_page_config(page_title="Virginia Home Price Predictor", layout="centered")
+from theme import apply_theme
 
-st.markdown(
-    """
-    <style>
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: column;
-        }
-        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-        }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
+st.set_page_config(
+    page_title="Virginia Home Price Predictor",
+    page_icon=os.path.join(os.path.dirname(__file__), "favicon.png"),
+    layout="centered",
 )
+
+apply_theme()
 
 
 @st.cache_resource
@@ -167,13 +160,14 @@ features_property = [
 ]
 
 st.title("Virginia Home Price Predictor")
+st.caption("Estimate a Virginia home's price from its city, size, age and features.")
 
 
 city_options = sorted(city_mapping.keys())
 city = st.selectbox("Select a Virginia City", options=[""] + city_options)
 
 if city:
-    st.warning("Slider ranges are data-driven from Virginia listings. Values may snap if the combination is atypical for the selected city.", icon="⚠️")
+    st.warning("Slider ranges are data-driven from Virginia listings. Values may snap if the combination is atypical for the selected city.")
 
 if city and city in city_mapping:
     city_encoded = city_mapping[city]
